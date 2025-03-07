@@ -1,5 +1,10 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import Column, Integer, String, Date
+from datetime import date
+
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quiz_master.db'
@@ -20,9 +25,16 @@ class User(db.Model):
     password = db.Column(db.String(100), nullable=False)
     full_name = db.Column(db.String(200), nullable=False)
     qualification = db.Column(db.String(200))
-    dob = db.Column(db.Date)
+    dob = Column(Date, nullable=False)  # Ensure Date type
+
 
     scores = db.relationship('Score', backref='user', lazy=True)
+
+    def set_password(self, password):
+            self.password = generate_password_hash(password)
+
+    def check_password(self, password):
+            return check_password_hash(self.password, password)
 
 # Subject Model
 class Subject(db.Model):

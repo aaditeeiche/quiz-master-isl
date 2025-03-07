@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Login</title>
+</head>
+<body>
+    <h2>{{ 'Admin' if role == 'admin' else 'User' }} Login</h2>
+    <form method="post">
+        <input type="text" name="username" placeholder="Enter Username" required><br>
+        <input type="password" name="password" placeholder="Enter Password" required><br>
+        <button type="submit">Login</button>
+    </form>
+    {% if role == 'user' %}
+        <p>New user? <a href="{{ url_for('auth.register') }}">Register Here</a></p>
+    {% endif %}
+</body>
+</html>
