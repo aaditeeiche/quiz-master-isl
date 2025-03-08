@@ -1,7 +1,7 @@
 from flask import Flask, flash, render_template, request, session, redirect, url_for
 from werkzeug.security import generate_password_hash
 from controllers.auth import auth_bp
-from models.models import Chapter, Quiz, Subject, User, db, Admin  # Import models from models.py
+from models.models import Chapter, Question, Quiz, Subject, User, db, Admin  # Import models from models.py
 from datetime import date, datetime
 
 
@@ -107,6 +107,13 @@ def admin_dashboard():
             # Convert string to Python date object
             date_of_quiz = datetime.strptime(date_of_quiz_str, '%Y-%m-%d').date()
 
+            # Convert time_duration to integer (assuming minutes)
+            try:
+                time_duration = int(time_duration)  # Convert to integer
+            except ValueError:
+                flash('Invalid time duration. Please enter a number.', 'danger')
+                return redirect(request.referrer)  # Redirect back if invalid input
+
             new_quiz = Quiz(chapter_id=chapter_id, date_of_quiz=date_of_quiz, time_duration=time_duration, remarks=remarks)
             db.session.add(new_quiz)
             db.session.commit()
@@ -130,7 +137,26 @@ def admin_dashboard():
                 db.session.commit()
                 flash('Quiz deleted successfully!', 'success')
 
+        # --- Quiz CRUD ---
+        elif action == 'create_question':
+            quiz_id = request.form.get('quiz_id')
+            question_text = request.form.get('question_text')
+            option_a = request.form.get('option_a')
+            option_b = request.form.get('option_b')
+            option_c = request.form.get('option_c')
+            option_d = request.form.get('option_d')
+            correct_answer = request.form.get('correct_answer')
+
+            new_question = Question(quiz_id=quiz_id, question_statement=question_text, optionA=option_a, optionB=option_b, optionC=option_c, optionD=option_d, correct_option=correct_answer)
+            
+            db.session.add(new_question)
+            db.session.commit()
+            flash('Question added successfully!', 'success')
+
         return redirect(url_for('admin_dashboard'))
+
+        
+
 
     return render_template('admin_dashboard.html', users=users, subjects=subjects, chapters=chapters, quizzes=quizzes)
 

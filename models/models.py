@@ -2,7 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import Column, Integer, String, Date
-from datetime import date
+from datetime import date, datetime
 
 
 
@@ -57,9 +57,9 @@ class Quiz(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     chapter_id = db.Column(db.Integer, db.ForeignKey('chapter.id'), nullable=False)
     date_of_quiz = db.Column(db.Date)
-    time_duration = db.Column(db.String(10))
+    time_duration = db.Column(db.Integer)  # Store duration in minutes
     remarks = db.Column(db.Text)
-
+    
     questions = db.relationship('Question', backref='quiz', lazy=True)
 
 # Question Model
@@ -67,10 +67,10 @@ class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
     question_statement = db.Column(db.Text, nullable=False)
-    option1 = db.Column(db.String(200))
-    option2 = db.Column(db.String(200))
-    option3 = db.Column(db.String(200))
-    option4 = db.Column(db.String(200))
+    optionA = db.Column(db.String(200))
+    optionB = db.Column(db.String(200))
+    optionC = db.Column(db.String(200))
+    optionD = db.Column(db.String(200))
     correct_option = db.Column(db.String(200))
 
 # Score Model

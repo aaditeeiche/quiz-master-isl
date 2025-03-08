@@ -137,7 +137,7 @@
         {% endfor %}
     </select>
     <input type="date" name="date_of_quiz" required>
-    <input type="text" name="time_duration" placeholder="Time Duration (e.g., 30 mins)" required>
+    <input type="text" name="time_duration" placeholder="Time Duration (in minutes)" required>
     <textarea name="remarks" placeholder="Remarks"></textarea>
     <button type="submit">Add Quiz</button>
 </form>
@@ -184,3 +184,36 @@
         {% endfor %}
     </tbody>
 </table>
+
+<h2>Manage Questions</h2>
+<form method="POST" action="{{ url_for('admin_dashboard') }}">
+    <input type="hidden" name="action" value="create_question">
+    
+    <!-- Select Quiz -->
+    <select name="quiz_id" required>
+        <option value="">Select Quiz</option>
+        {% for quiz in quizzes %}
+        <option value="{{ quiz.id }}">Quiz ID: {{ quiz.id }} | Chapter: {{ quiz.chapter.name }}</option>
+        {% endfor %}
+    </select>
+
+    <!-- Question Text -->
+    <textarea name="question_text" placeholder="Enter question here" required></textarea>
+
+    <!-- Answer Choices -->
+    <input type="text" name="option_a" placeholder="Option A" required>
+    <input type="text" name="option_b" placeholder="Option B" required>
+    <input type="text" name="option_c" placeholder="Option C" required>
+    <input type="text" name="option_d" placeholder="Option D" required>
+
+    <!-- Correct Answer -->
+    <select name="correct_answer" required>
+        <option value="">Select Correct Answer</option>
+        <option value="A">Option A</option>
+        <option value="B">Option B</option>
+        <option value="C">Option C</option>
+        <option value="D">Option D</option>
+    </select>
+
+    <button type="submit">Add Question</button>
+</form>
