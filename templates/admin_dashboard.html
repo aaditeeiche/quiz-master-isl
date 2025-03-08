@@ -1,2 +1,186 @@
 <h1>Welcome Admin</h1>
 <a href="{{ url_for('auth.logout') }}">Logout</a>
+
+<h2>All Registered Users</h2>
+<table border="1">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Qualification</th>
+            <th>Date of Birth</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.full_name }}</td>
+            <td>{{ user.qualification or 'N/A' }}</td>
+            <td>{{ user.dob.strftime('%Y-%m-%d') }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Manage Subjects</h2>
+
+<!-- Add New Subject Form -->
+<form method="POST" action="{{ url_for('admin_dashboard') }}">
+    <input type="hidden" name="action" value="create_subject">
+    <input type="text" name="name" placeholder="Subject Name" required>
+    <textarea name="description" placeholder="Subject Description"></textarea>
+    <button type="submit">Add Subject</button>
+</form>
+
+<!-- List of Subjects -->
+<table border="1">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for subject in subjects %}
+        <tr>
+            <td>{{ subject.id }}</td>
+            <td>{{ subject.name }}</td>
+            <td>{{ subject.description or 'N/A' }}</td>
+            <td>
+                <!-- Edit Subject Form -->
+                <form method="POST" action="{{ url_for('admin_dashboard') }}" style="display:inline;">
+                    <input type="hidden" name="action" value="edit_subject">
+                    <input type="hidden" name="id" value="{{ subject.id }}">
+                    <input type="text" name="name" value="{{ subject.name }}" required>
+                    <textarea name="description">{{ subject.description }}</textarea>
+                    <button type="submit">Update</button>
+                </form>
+
+                <!-- Delete Subject Form -->
+                <form method="POST" action="{{ url_for('admin_dashboard') }}" style="display:inline;">
+                    <input type="hidden" name="action" value="delete_subject">
+                    <input type="hidden" name="id" value="{{ subject.id }}">
+                    <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Manage Chapters</h2>
+
+<!-- Add New Chapter Form -->
+<form method="POST" action="{{ url_for('admin_dashboard') }}">
+    <input type="hidden" name="action" value="create_chapter">
+    <select name="subject_id" required>
+        <option value="">Select Subject</option>
+        {% for subject in subjects %}
+        <option value="{{ subject.id }}">{{ subject.name }}</option>
+        {% endfor %}
+    </select>
+    <input type="text" name="name" placeholder="Chapter Name" required>
+    <button type="submit">Add Chapter</button>
+</form>
+
+<!-- List of Chapters -->
+<table border="1">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Subject</th>
+            <th>Name</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for chapter in chapters %}
+        <tr>
+            <td>{{ chapter.id }}</td>
+            <td>{{ chapter.subject.name }}</td>
+            <td>{{ chapter.name }}</td>
+            <td>
+                <!-- Edit Chapter Form -->
+                <form method="POST" action="{{ url_for('admin_dashboard') }}" style="display:inline;">
+                    <input type="hidden" name="action" value="edit_chapter">
+                    <input type="hidden" name="id" value="{{ chapter.id }}">
+                    <input type="text" name="name" value="{{ chapter.name }}" required>
+                    <button type="submit">Update</button>
+                </form>
+
+                <!-- Delete Chapter Form -->
+                <form method="POST" action="{{ url_for('admin_dashboard') }}" style="display:inline;">
+                    <input type="hidden" name="action" value="delete_chapter">
+                    <input type="hidden" name="id" value="{{ chapter.id }}">
+                    <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Manage Quizzes</h2>
+
+<!-- Add New Quiz Form -->
+<form method="POST" action="{{ url_for('admin_dashboard') }}">
+    <input type="hidden" name="action" value="create_quiz">
+    <select name="chapter_id" required>
+        <option value="">Select Chapter</option>
+        {% for chapter in chapters %}
+        <option value="{{ chapter.id }}">{{ chapter.name }}</option>
+        {% endfor %}
+    </select>
+    <input type="date" name="date_of_quiz" required>
+    <input type="text" name="time_duration" placeholder="Time Duration (e.g., 30 mins)" required>
+    <textarea name="remarks" placeholder="Remarks"></textarea>
+    <button type="submit">Add Quiz</button>
+</form>
+
+<!-- List of Quizzes -->
+<table border="1">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Chapter</th>
+            <th>Date</th>
+            <th>Duration</th>
+            <th>Remarks</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for quiz in quizzes %}
+        <tr>
+            <td>{{ quiz.id }}</td>
+            <td>{{ quiz.chapter.name }}</td>
+            <td>{{ quiz.date_of_quiz }}</td>
+            <td>{{ quiz.time_duration }}</td>
+            <td>{{ quiz.remarks or 'N/A' }}</td>
+            <td>
+                <!-- Edit Quiz Form -->
+                <form method="POST" action="{{ url_for('admin_dashboard') }}" style="display:inline;">
+                    <input type="hidden" name="action" value="edit_quiz">
+                    <input type="hidden" name="id" value="{{ quiz.id }}">
+                    <input type="date" name="date_of_quiz" value="{{ quiz.date_of_quiz }}" required>
+                    <input type="text" name="time_duration" value="{{ quiz.time_duration }}" required>
+                    <textarea name="remarks">{{ quiz.remarks }}</textarea>
+                    <button type="submit">Update</button>
+                </form>
+
+                <!-- Delete Quiz Form -->
+                <form method="POST" action="{{ url_for('admin_dashboard') }}" style="display:inline;">
+                    <input type="hidden" name="action" value="delete_quiz">
+                    <input type="hidden" name="id" value="{{ quiz.id }}">
+                    <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
