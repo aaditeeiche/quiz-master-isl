@@ -1,0 +1,28 @@
+<h2>Edit Question</h2>
+<form method="POST" action="{{ url_for('edit_question', question_id=question.id) }}">
+    <label>Question:</label>
+    <textarea name="question_text" required>{{ question.question_statement }}</textarea>
+
+    <label>Option A:</label>
+    <input type="text" name="optionA" value="{{ question.optionA }}" required>
+
+    <label>Option B:</label>
+    <input type="text" name="optionB" value="{{ question.optionB }}" required>
+
+    <label>Option C:</label>
+    <input type="text" name="optionC" value="{{ question.optionC }}" required>
+
+    <label>Option D:</label>
+    <input type="text" name="optionD" value="{{ question.optionD }}" required>
+
+    <label>Correct Answer:</label>
+    <select name="correct_answer" required>
+        <option value="A" {% if question.correct_option == 'A' %}selected{% endif %}>Option A</option>
+        <option value="B" {% if question.correct_option == 'B' %}selected{% endif %}>Option B</option>
+        <option value="C" {% if question.correct_option == 'C' %}selected{% endif %}>Option C</option>
+        <option value="D" {% if question.correct_option == 'D' %}selected{% endif %}>Option D</option>
+    </select>
+
+    <button type="submit">Save Changes</button>
+</form>
+<a href="{{ url_for('manage_questions') }}">Back to Questions</a>

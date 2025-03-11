@@ -1,0 +1,81 @@
+<h1>Manage Questions</h1>
+<a href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+
+<h2>Add Question</h2>
+<form method="POST" action="{{ url_for('manage_questions') }}">
+    <input type="hidden" name="action" value="create_question">
+
+    <label>Quiz:</label>
+    <select name="quiz_id" required>
+        <option value="">Select Quiz</option>
+        {% for quiz in quizzes %}
+        <option value="{{ quiz.id }}">Quiz ID: {{ quiz.id }} | Chapter: {{ quiz.chapter.name }}</option>
+        {% endfor %}
+    </select>
+
+    <label>Question:</label>
+    <input type="text" name="question_text" required>
+
+    <label>Option A:</label>
+    <input type="text" name="optionA" required>
+
+    <label>Option B:</label>
+    <input type="text" name="optionB" required>
+
+    <label>Option C:</label>
+    <input type="text" name="optionC" required>
+
+    <label>Option D:</label>
+    <input type="text" name="optionD" required>
+
+    <label>Correct Answer:</label>
+    <select name="correct_answer" required>
+        <option value="">Select Correct Option</option>
+        <option value="A">Option A</option>
+        <option value="B">Option B</option>
+        <option value="C">Option C</option>
+        <option value="D">Option D</option>
+    </select>
+
+    <button type="submit">Add Question</button>
+</form>
+
+<h2>All Questions</h2>
+<table border="1">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Quiz</th>
+            <th>Question</th>
+            <th>Options</th>
+            <th>Correct Answer</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for question in questions %}
+        <tr>
+            <td>{{ question.id }}</td>
+            <td>{{ question.quiz.id }}</td>
+            <td>{{ question.question_statement }}</td>
+            <td>
+                A: {{ question.optionA }}<br>
+                B: {{ question.optionB }}<br>
+                C: {{ question.optionC }}<br>
+                D: {{ question.optionD }}
+            </td>
+            <td>{{ question.correct_option }}</td>
+            <td>
+                <form method="POST" action="{{ url_for('manage_questions') }}">
+                    <input type="hidden" name="action" value="delete_question">
+                    <input type="hidden" name="question_id" value="{{ question.id }}">
+                    <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+                </form>
+                <a href="{{ url_for('edit_question', question_id=question.id) }}">
+                    <button type="button">Edit</button>
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

@@ -140,23 +140,20 @@ def admin_dashboard():
         # --- Quiz CRUD ---
         elif action == 'create_question':
             quiz_id = request.form.get('quiz_id')
-            question_text = request.form.get('question_text')
+            question_statement = request.form.get('question_statement')
             option_a = request.form.get('option_a')
             option_b = request.form.get('option_b')
             option_c = request.form.get('option_c')
             option_d = request.form.get('option_d')
             correct_answer = request.form.get('correct_answer')
 
-            new_question = Question(quiz_id=quiz_id, question_statement=question_text, optionA=option_a, optionB=option_b, optionC=option_c, optionD=option_d, correct_option=correct_answer)
+            new_question = Question(quiz_id=quiz_id, question_statement=question_statement, optionA=option_a, optionB=option_b, optionC=option_c, optionD=option_d, correct_option=correct_answer)
             
             db.session.add(new_question)
             db.session.commit()
             flash('Question added successfully!', 'success')
 
         return redirect(url_for('admin_dashboard'))
-
-        
-
 
     return render_template('admin_dashboard.html', users=users, subjects=subjects, chapters=chapters, quizzes=quizzes)
 
@@ -166,6 +163,114 @@ def user_dashboard():
     if 'user_id' not in session:
         return redirect(url_for('auth.user_login'))
     return render_template('user_dashboard.html')
+
+
+# # Route for Managing Questions
+# @app.route('/manage_questions', methods=['GET', 'POST'])
+# def manage_questions():
+#     quizzes = Quiz.query.all()
+#     questions = Question.query.all()
+
+#     if request.method == 'POST':
+#         action = request.form.get('action')
+
+#         if action == 'create_question':
+#             quiz_id = request.form.get('quiz_id')
+#             question_statement = request.form.get('question_statement')
+#             option_a = request.form.get('option_a')
+#             option_b = request.form.get('option_b')
+#             option_c = request.form.get('option_c')
+#             option_d = request.form.get('option_d')
+#             correct_answer = request.form.get('correct_answer')
+
+#             new_question = Question(
+#                 quiz_id=quiz_id,
+#                 question_statement=question_statement,
+#                 option_a=option_a,
+#                 option_b=option_b,
+#                 option_c=option_c,
+#                 option_d=option_d,
+#                 correct_answer=correct_answer
+#             )
+#             db.session.add(new_question)
+#             db.session.commit()
+#             flash('Question added successfully!', 'success')
+#             return redirect(url_for('manage_questions'))
+
+#         elif action == 'delete_question':
+#             question_id = request.form.get('id')
+#             question = Question.query.get(question_id)
+#             if question:
+#                 db.session.delete(question)
+#                 db.session.commit()
+#                 flash('Question deleted successfully!', 'success')
+#             else:
+#                 flash('Question not found!', 'danger')
+#             return redirect(url_for('manage_questions'))
+@app.route('/manage_questions', methods=['GET', 'POST'])
+def manage_questions():
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'create_question':
+            quiz_id = request.form.get('quiz_id')
+            question_text = request.form.get('question_text')
+            optionA = request.form.get('optionA')
+            optionB = request.form.get('optionB')
+            optionC = request.form.get('optionC')
+            optionD = request.form.get('optionD')
+            correct_option = request.form.get('correct_answer')
+
+            new_question = Question(
+                quiz_id=quiz_id,
+                question_statement=question_text,
+                optionA=optionA,
+                optionB=optionB,
+                optionC=optionC,
+                optionD=optionD,
+                correct_option=correct_option
+            )
+
+
+            db.session.add(new_question)
+            db.session.commit()
+            flash('Question added successfully!', 'success')
+
+        elif action == 'delete_question':
+            question_id = request.form.get('question_id')
+            question = Question.query.get(question_id)
+            if question:
+                db.session.delete(question)
+                db.session.commit()
+                flash('Question deleted successfully!', 'danger')
+
+    quizzes = Quiz.query.all()
+    questions = Question.query.all()
+    return render_template('manage_questions.html', quizzes=quizzes, questions=questions)
+
+@app.route('/edit_question/<int:question_id>', methods=['GET', 'POST'])
+def edit_question(question_id):
+    question = Question.query.get_or_404(question_id)  # Ensure question exists
+
+    if request.method == 'POST':
+        question.question_statement = request.form.get('question_text')
+        question.optionA = request.form.get('optionA')
+        question.optionB = request.form.get('optionB')
+        question.optionC = request.form.get('optionC')
+        question.optionD = request.form.get('optionD')
+        question.correct_option = request.form.get('correct_answer')
+
+        db.session.commit()
+        flash('Question updated successfully!', 'info')
+        return redirect(url_for('manage_questions'))  # Redirect after updating
+
+    return render_template('edit_question.html', question=question)  # Return response in GET method
+
+# Index
+@app.route('/')
+def home():
+    return render_template('index.html')
+
 
 # Create Database Tables and Pre-Fill Admin
 with app.app_context():
@@ -183,3 +288,4 @@ with app.app_context():
 # Run Flask App
 if __name__ == '__main__':
     app.run(debug=True)
+
