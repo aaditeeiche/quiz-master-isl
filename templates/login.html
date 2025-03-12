@@ -4,6 +4,7 @@
     <title>Login</title>
 </head>
 <body>
+    <a href="{{ url_for('home') }}">Back to homepage</a>
     <h2>{{ 'Admin' if role == 'admin' else 'User' }} Login</h2>
     <form method="post">
         <input type="text" name="username" placeholder="Enter Username" required><br>

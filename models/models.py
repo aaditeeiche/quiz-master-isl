@@ -2,9 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import Column, Integer, String, Date
-from datetime import date, datetime
-
-
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quiz_master.db'
@@ -22,13 +20,12 @@ class Admin(db.Model):
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(100), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     full_name = db.Column(db.String(200), nullable=False)
     qualification = db.Column(db.String(200))
-    dob = Column(Date, nullable=False)  # Ensure Date type
+    dob = db.Column(db.Date, nullable=False)
 
-
-    scores = db.relationship('Score', backref='user', lazy=True)
+    scores = db.relationship('QuizScore', backref='user', lazy=True)
 
     def set_password(self, password):
             self.password = generate_password_hash(password)
@@ -73,13 +70,29 @@ class Question(db.Model):
     optionD = db.Column(db.String(200))
     correct_option = db.Column(db.String(200))
 
-# Score Model
-class Score(db.Model):
+# User Response
+class UserResponse(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    time_stamp_of_attempt = db.Column(db.DateTime)
-    total_scored = db.Column(db.Integer)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id'), nullable=False)
+    selected_answer = db.Column(db.String(1), nullable=False)
+    is_correct = db.Column(db.Boolean, nullable=False)  # Indicates if the answer is correct
+
+    user = db.relationship('User', backref=db.backref('responses', lazy=True))
+    quiz = db.relationship('Quiz', backref=db.backref('responses', lazy=True))
+    question = db.relationship('Question', backref=db.backref('responses', lazy=True))
+
+# Quiz Score Model
+class QuizScore(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
+    score = db.Column(db.Integer, nullable=False)
+    total_questions = db.Column(db.Integer, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    quiz = db.relationship('Quiz', backref=db.backref('quiz_scores', lazy=True))
 
 # Create Tables
 if __name__ == '__main__':

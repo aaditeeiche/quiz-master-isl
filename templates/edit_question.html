@@ -16,7 +16,7 @@
     <input type="text" name="optionD" value="{{ question.optionD }}" required>
 
     <label>Correct Answer:</label>
-    <select name="correct_answer" required>
+    <select name="correct_option" required>
         <option value="A" {% if question.correct_option == 'A' %}selected{% endif %}>Option A</option>
         <option value="B" {% if question.correct_option == 'B' %}selected{% endif %}>Option B</option>
         <option value="C" {% if question.correct_option == 'C' %}selected{% endif %}>Option C</option>

@@ -1,2 +1,19 @@
-<h1>Welcome User</h1>
+<h1>Welcome, {{ user.full_name }}</h1>
 <a href="{{ url_for('auth.logout') }}">Logout</a>
+
+<h2>Available Subjects</h2>
+<ul>
+    {% for subject in subjects %}
+        <li>{{ subject.name }}</li>
+    {% endfor %}
+</ul>
+
+<h2>Available Quizzes</h2>
+<ul>
+    {% for quiz in quizzes %}
+    <!-- TODO: Change this to attempt question.html -->
+        <li>{{ quiz.remarks }} - <a href="{{ url_for('attempt_quiz', quiz_id=quiz.id) }}">Start Quiz</a></li>
+        <td></td>
+
+    {% endfor %}
+</ul>
