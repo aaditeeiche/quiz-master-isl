@@ -30,6 +30,39 @@ def admin_dashboard():
     chapters = Chapter.query.all()
     quizzes = Quiz.query.all()
 
+    # Admin Search functionality
+    search_query = request.args.get('search_query', '').strip()
+
+    # Perform search if query is present
+    if search_query:
+        users = User.query.filter(
+            (User.username.ilike(f"%{search_query}%")) |
+            (User.full_name.ilike(f"%{search_query}%")) |
+            (User.qualification.ilike(f"%{search_query}%"))
+        ).all()
+
+        subjects = Subject.query.filter(Subject.name.ilike(f"%{search_query}%")).all()
+
+        chapters = Chapter.query.join(Subject).filter(
+            (Chapter.name.ilike(f"%{search_query}%")) |
+            (Subject.name.ilike(f"%{search_query}%"))
+        ).all()
+
+        quizzes = Quiz.query.join(Chapter).filter(
+            (Chapter.name.ilike(f"%{search_query}%")) |
+            (Quiz.remarks.ilike(f"%{search_query}%"))
+        ).all()
+
+        # Hide sections without results
+        show_users = bool(users)
+        show_subjects = bool(subjects)
+        show_chapters = bool(chapters)
+        show_quizzes = bool(quizzes)
+
+    else:
+        # Show all sections when no search is performed
+        show_users = show_subjects = show_quizzes = show_chapters = True
+
     if request.method == 'POST':
         action = request.form.get('action')
 
@@ -150,7 +183,8 @@ def admin_dashboard():
 
         return redirect(url_for('admin_dashboard'))
 
-    return render_template('admin_dashboard.html', users=users, subjects=subjects, chapters=chapters, quizzes=quizzes)
+    return render_template('admin_dashboard.html', users=users, subjects=subjects, chapters=chapters, quizzes=quizzes, search_query=search_query, show_users=show_users, show_subjects=show_subjects, show_chapters = show_chapters, show_quizzes=show_quizzes
+    )
 
 @app.route('/user_dashboard')
 def user_dashboard():
@@ -160,11 +194,26 @@ def user_dashboard():
     user = User.query.get(session['user_id'])  # Fetch the logged-in user
     if not user:
         return redirect(url_for('login'))  # Safety check: user must exist
-    
-    subjects = Subject.query.all()  # Get all subjects
-    quizzes = Quiz.query.all()  # Get all quizzes
 
-    return render_template('user_dashboard.html', user=user, subjects=subjects, quizzes=quizzes)
+    # Retrieve search query
+    search_query = request.args.get('search_query', '').strip()
+
+    # Perform search if query is present
+    if search_query:
+        subjects = Subject.query.filter(Subject.name.ilike(f"%{search_query}%")).all()
+        chapters = Chapter.query.filter(Chapter.name.ilike(f"%{search_query}%")).all()
+        quizzes = Quiz.query.filter(Quiz.remarks.ilike(f"%{search_query}%")).all()
+    else:
+        # Show all subjects and quizzes if no search query
+        subjects = Subject.query.all()
+        chapters = Chapter.query.all()
+        quizzes = Quiz.query.all()
+
+    show_subjects = bool(subjects)
+    show_chapters = bool(chapters)
+    show_quizzes = bool(quizzes)
+
+    return render_template('user_dashboard.html', user=user, chapters=chapters, subjects=subjects, quizzes=quizzes, show_subjects=show_subjects, show_chapters=show_chapters, show_quizzes=show_quizzes)
 
 
 @app.route('/manage_questions', methods=['GET', 'POST'])
@@ -419,67 +468,6 @@ def submit_quiz():
         db.session.close()
 
     return redirect(url_for('quiz_feedback', quiz_id=quiz_id, score=score))
-
-# @app.route('/quiz_summary')
-# def quiz_summary():
-#     if 'user_id' not in session:
-#         flash("Please log in to view your quiz summary.", "error")
-#         return redirect(url_for('login'))
-
-#     user_id = session['user_id']
-
-#     # Fetch past quiz attempts with subject, chapter, avg_score, and top_score
-#     past_attempts = (
-#         db.session.query(
-#             QuizScore,
-#             Quiz,
-#             Chapter,
-#             Subject,
-#             db.func.avg(QuizScore.score).over(partition_by=QuizScore.quiz_id).label("avg_score"),
-#             db.func.max(QuizScore.score).over(partition_by=QuizScore.quiz_id).label("top_score")
-#         )
-#         .join(Quiz, QuizScore.quiz_id == Quiz.id)
-#         .join(Chapter, Quiz.chapter_id == Chapter.id)
-#         .join(Subject, Chapter.subject_id == Subject.id)
-#         .filter(QuizScore.user_id == user_id)
-#         .order_by(QuizScore.timestamp.desc())
-#         .all()
-#     )
-
-#     # Compute both user's total score and overall total score per subject
-#     subject_scores_query = (
-#         db.session.query(
-#             Subject.name.label('subject_name'),
-#             db.func.sum(QuizScore.score).filter(QuizScore.user_id == user_id).label('user_total_score'),
-#             db.func.sum(QuizScore.total_questions).filter(QuizScore.user_id == user_id).label('user_total_possible_score'),
-#             db.func.sum(QuizScore.score).label('overall_total_score'),
-#             db.func.sum(QuizScore.total_questions).label('overall_total_possible_score')
-#         )
-#         .join(Quiz, QuizScore.quiz_id == Quiz.id)
-#         .join(Chapter, Quiz.chapter_id == Chapter.id)
-#         .join(Subject, Chapter.subject_id == Subject.id)
-#         .group_by(Subject.name)
-#         .all()
-#     )
-
-#     # Compute pass/fail for each subject
-#     subject_scores = []
-#     for subject_name, user_total_score, user_total_possible_score, overall_total_score, overall_total_possible_score in subject_scores_query:
-#         user_percentage = (user_total_score / user_total_possible_score) * 100 if user_total_possible_score > 0 else 0
-#         pass_fail = "Pass" if user_percentage >= 40 else "Fail"
-#         subject_scores.append((subject_name, user_total_score, user_total_possible_score, overall_total_score, overall_total_possible_score, pass_fail))
-
-#     # Calculate overall pass/fail status
-#     total_attempts = len(past_attempts)
-#     passed_attempts = sum(1 for attempt in past_attempts if (attempt[0].score / attempt[0].total_questions) * 100 >= 40)
-#     overall_pass_status = "Pass" if passed_attempts / total_attempts >= 0.5 else "Fail" if total_attempts > 0 else "N/A"
-
-#     return render_template(
-#         'quiz_summary.html',
-#         past_attempts=past_attempts,
-#         subject_scores=subject_scores,
-#         overall_pass_status=overall_pass_status
-#     )
 
 @app.route('/quiz_summary')
 def quiz_summary():
