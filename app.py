@@ -3,7 +3,7 @@ from werkzeug.security import generate_password_hash
 from controllers.auth import auth_bp
 from models.models import Chapter, Question, Quiz, QuizScore, Subject, User, db, Admin, UserResponse  # Import models from models.py
 from datetime import date, datetime
-
+from flask_toastr import Toastr
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -12,22 +12,13 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quiz_master.db?check_same_thread=False'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your_secret_key'  # Required for session management
-
+toastr = Toastr(app)
 
 # Initialize Database
 db.init_app(app)
 
 # Register Blueprints (Routes)
 app.register_blueprint(auth_bp)
-
-# Admin Dashboard
-@app.route('/admin_dashboard', methods=['GET', 'POST'])
-# def admin_dashboard():
-#     if 'admin_logged_in' not in session:
-#         return redirect(url_for('auth.admin_login'))
-
-#     users = User.query.all()  # Fetch all users from the database
-#     return render_template('admin_dashboard.html', users=users)
 
 @app.route('/admin_dashboard', methods=['GET', 'POST'])
 def admin_dashboard():
@@ -141,7 +132,7 @@ def admin_dashboard():
                 db.session.commit()
                 flash('Quiz deleted successfully!', 'success')
 
-        # --- Quiz CRUD ---
+        # --- Question CRUD ---
         elif action == 'create_question':
             quiz_id = request.form.get('quiz_id')
             question_statement = request.form.get('question_statement')
@@ -285,21 +276,7 @@ def attempt_quiz(quiz_id):
 
     return render_template('attempt_quiz.html', quiz=quiz, questions=questions)
 
-# @app.route('/quiz_feedback/<int:quiz_id>/<int:score>')
-# def quiz_feedback(quiz_id, score):
-#     quiz = Quiz.query.get(quiz_id)
-#     if not quiz:
-#         flash("Quiz not found!", "danger")
-#         return redirect(url_for("user_dashboard"))
-
-#     total_questions = Question.query.filter_by(quiz_id=quiz_id).count()
-#     percentage = (score / total_questions) * 100 if total_questions else 0
-    
-#     feedback = "Great job!" if percentage >= 80 else "Good effort! Keep practicing!"
-
-#     return render_template("quiz_feedback.html", quiz=quiz, quiz_id=quiz.id, score=score, total_questions=total_questions, percentage=percentage, feedback=feedback)
-
-@app.route('/quiz_feedback/<int:quiz_id>')
+@app.route('/quiz_feedback/<int:quiz_id>') # changed
 def quiz_feedback(quiz_id):
     if 'user_id' not in session:
         flash("Please log in to view quiz feedback.", "error")
@@ -320,16 +297,17 @@ def quiz_feedback(quiz_id):
     # Fetch user's responses
     responses = UserResponse.query.filter_by(user_id=user_id, quiz_id=quiz_id).all()
 
-    # Debugging logs
-    print(f"Quiz ID: {quiz_id}")
-    print(f"Questions found: {len(questions)}")
-    print(f"User Responses found: {len(responses)}")
-
     # Convert responses into a dictionary for quick lookup
     response_dict = {resp.question_id: resp for resp in responses}
 
+    # Fetch user's quiz score and percentage from the database
+    quiz_score = QuizScore.query.filter_by(user_id=user_id, quiz_id=quiz_id).first()
+
+    if not quiz_score:
+        flash("No quiz score found. Please retake the quiz.", "error")
+        return redirect(url_for('dashboard'))
+
     feedback = []
-    correct_count = 0
 
     # Mapping function to get option value from its key (A/B/C/D)
     def get_option_value(question, option_key):
@@ -345,9 +323,6 @@ def quiz_feedback(quiz_id):
 
         is_correct = user_response.is_correct if user_response else False
 
-        if is_correct:
-            correct_count += 1
-
         feedback.append({
             "question": question.question_statement,
             "selected": selected_answer,
@@ -355,45 +330,14 @@ def quiz_feedback(quiz_id):
             "is_correct": is_correct
         })
 
-    total_questions = len(questions)
-    percentage = (correct_count / total_questions) * 100 if total_questions > 0 else 0
-
     return render_template(
         "quiz_feedback.html",
         quiz_id=quiz_id,
         feedback=feedback,
-        correct_count=correct_count,
-        total=total_questions,
-        percentage=round(percentage, 2)
+        correct_count=quiz_score.score,  # Fetch score from QuizScore
+        total=quiz_score.total_questions,  # Fetch total questions from QuizScore
+        percentage=round(quiz_score.percentage, 2)  # Fetch percentage from QuizScore
     )
-
-# @app.route('/submit_quiz', methods=['POST'])
-# def submit_quiz():
-
-#     user_id = session.get('user_id')
-#     quiz_id = request.form.get('quiz_id')
-#     print(f"Received quiz_id: {quiz_id}")  # Debugging statement    
-
-#     if not quiz_id:
-#         return "Quiz ID is missing", 400
-
-#     quiz = Quiz.query.get(quiz_id)
-#     if not quiz:
-#         return "Quiz not found", 404
-#     total_questions = Question.query.filter_by(quiz_id=quiz_id).count()
-
-    # score = 0
-    # for question in quiz.questions:
-    #     user_answer = request.form.get(f'question_{question.id}')
-    #     if user_answer and user_answer == question.correct_option:
-    #         score += 1
-
-    # quiz_score = QuizScore(user_id=user_id, quiz_id=quiz_id, score=score, total_questions=total_questions)
-    # db.session.add(quiz_score)
-#     db.session.commit()
-
-#     flash('Quiz submitted successfully! Your score has been recorded.', 'success')
-#     return redirect(url_for('quiz_feedback', quiz_id=quiz_id, score=score))
 
 @app.route('/submit_quiz', methods=['POST'])
 def submit_quiz():
@@ -419,11 +363,6 @@ def submit_quiz():
     questions = Question.query.filter_by(quiz_id=quiz_id).all()
     total_questions = len(questions)
 
-    # Clear previous responses and scores if re-attempts are allowed
-    UserResponse.query.filter_by(user_id=user_id, quiz_id=quiz_id).delete()
-    QuizScore.query.filter_by(user_id=user_id, quiz_id=quiz_id).delete()
-    db.session.commit()
-
     score = 0  # Initialize score
 
     for question in questions:
@@ -442,19 +381,36 @@ def submit_quiz():
         )        
         db.session.add(user_response)
 
-    # Save quiz score
-    quiz_score = QuizScore(
-        user_id=user_id,
-        quiz_id=quiz_id,
-        score=score,
-        total_questions=total_questions,
-        timestamp=datetime.utcnow()
-    )
-    db.session.add(quiz_score)
+    # Calculate the percentage
+    percentage = (score / total_questions) * 100 if total_questions > 0 else 0
+
+    # Retrieve existing best score for the quiz
+    existing_score = QuizScore.query.filter_by(user_id=user_id, quiz_id=quiz_id).first()
+
+    if existing_score:
+        if score > existing_score.score:  # Update only if the new score is higher
+            existing_score.score = score
+            existing_score.total_questions = total_questions
+            existing_score.percentage = percentage
+            existing_score.timestamp = datetime.utcnow()
+            flash("Congratulations! Your highest score has been updated.", "success")
+        else:
+            flash("Your previous best score remains unchanged.", "info")
+    else:
+        # If no previous attempt exists, save the new score
+        quiz_score = QuizScore(
+            user_id=user_id,
+            quiz_id=quiz_id,
+            score=score,
+            total_questions=total_questions,
+            percentage=percentage,
+            timestamp=datetime.utcnow()
+        )
+        db.session.add(quiz_score)
+        flash("Your score has been recorded!", "success")
 
     try:
         db.session.commit()
-        flash("Quiz submitted successfully!", "success")
     except Exception as e:
         db.session.rollback()
         print("Error saving responses:", e)
@@ -464,11 +420,143 @@ def submit_quiz():
 
     return redirect(url_for('quiz_feedback', quiz_id=quiz_id, score=score))
 
-# Index
+# @app.route('/quiz_summary')
+# def quiz_summary():
+#     if 'user_id' not in session:
+#         flash("Please log in to view your quiz summary.", "error")
+#         return redirect(url_for('login'))
+
+#     user_id = session['user_id']
+
+#     # Fetch past quiz attempts with subject, chapter, avg_score, and top_score
+#     past_attempts = (
+#         db.session.query(
+#             QuizScore,
+#             Quiz,
+#             Chapter,
+#             Subject,
+#             db.func.avg(QuizScore.score).over(partition_by=QuizScore.quiz_id).label("avg_score"),
+#             db.func.max(QuizScore.score).over(partition_by=QuizScore.quiz_id).label("top_score")
+#         )
+#         .join(Quiz, QuizScore.quiz_id == Quiz.id)
+#         .join(Chapter, Quiz.chapter_id == Chapter.id)
+#         .join(Subject, Chapter.subject_id == Subject.id)
+#         .filter(QuizScore.user_id == user_id)
+#         .order_by(QuizScore.timestamp.desc())
+#         .all()
+#     )
+
+#     # Compute both user's total score and overall total score per subject
+#     subject_scores_query = (
+#         db.session.query(
+#             Subject.name.label('subject_name'),
+#             db.func.sum(QuizScore.score).filter(QuizScore.user_id == user_id).label('user_total_score'),
+#             db.func.sum(QuizScore.total_questions).filter(QuizScore.user_id == user_id).label('user_total_possible_score'),
+#             db.func.sum(QuizScore.score).label('overall_total_score'),
+#             db.func.sum(QuizScore.total_questions).label('overall_total_possible_score')
+#         )
+#         .join(Quiz, QuizScore.quiz_id == Quiz.id)
+#         .join(Chapter, Quiz.chapter_id == Chapter.id)
+#         .join(Subject, Chapter.subject_id == Subject.id)
+#         .group_by(Subject.name)
+#         .all()
+#     )
+
+#     # Compute pass/fail for each subject
+#     subject_scores = []
+#     for subject_name, user_total_score, user_total_possible_score, overall_total_score, overall_total_possible_score in subject_scores_query:
+#         user_percentage = (user_total_score / user_total_possible_score) * 100 if user_total_possible_score > 0 else 0
+#         pass_fail = "Pass" if user_percentage >= 40 else "Fail"
+#         subject_scores.append((subject_name, user_total_score, user_total_possible_score, overall_total_score, overall_total_possible_score, pass_fail))
+
+#     # Calculate overall pass/fail status
+#     total_attempts = len(past_attempts)
+#     passed_attempts = sum(1 for attempt in past_attempts if (attempt[0].score / attempt[0].total_questions) * 100 >= 40)
+#     overall_pass_status = "Pass" if passed_attempts / total_attempts >= 0.5 else "Fail" if total_attempts > 0 else "N/A"
+
+#     return render_template(
+#         'quiz_summary.html',
+#         past_attempts=past_attempts,
+#         subject_scores=subject_scores,
+#         overall_pass_status=overall_pass_status
+#     )
+
+@app.route('/quiz_summary')
+def quiz_summary():
+    if 'user_id' not in session:
+        flash("Please log in to view your quiz summary.", "error")
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+
+    # Fetch past quiz attempts with subject, chapter, avg_score, and top_score
+    past_attempts = (
+        db.session.query(
+            QuizScore,
+            Quiz,
+            Chapter,
+            Subject,
+            db.func.avg(QuizScore.score).over(partition_by=QuizScore.quiz_id).label("avg_score"),
+            db.func.max(QuizScore.score).over(partition_by=QuizScore.quiz_id).label("top_score")
+        )
+        .join(Quiz, QuizScore.quiz_id == Quiz.id)
+        .join(Chapter, Quiz.chapter_id == Chapter.id)
+        .join(Subject, Chapter.subject_id == Subject.id)
+        .filter(QuizScore.user_id == user_id)
+        .order_by(QuizScore.timestamp.desc())
+        .all()
+    )
+
+    # Compute both user's total score and overall total score per subject
+    subject_scores_query = (
+        db.session.query(
+            Subject.name.label('subject_name'),
+            db.func.sum(QuizScore.score).filter(QuizScore.user_id == user_id).label('user_total_score'),
+            db.func.sum(QuizScore.total_questions).filter(QuizScore.user_id == user_id).label('user_total_possible_score'),
+            db.func.sum(QuizScore.score).label('overall_total_score'),
+            db.func.sum(QuizScore.total_questions).label('overall_total_possible_score')
+        )
+        .join(Quiz, QuizScore.quiz_id == Quiz.id)
+        .join(Chapter, Quiz.chapter_id == Chapter.id)
+        .join(Subject, Chapter.subject_id == Subject.id)
+        .group_by(Subject.name)
+        .all()
+    )
+
+    # Compute pass/fail and difficulty indicator
+    subject_scores = []
+    for subject_name, user_total_score, user_total_possible_score, overall_total_score, overall_total_possible_score in subject_scores_query:
+        user_percentage = (user_total_score / user_total_possible_score) * 100 if user_total_possible_score > 0 else 0
+        pass_fail = "Pass" if user_percentage >= 40 else "Fail"
+
+        # Difficulty Indicator based on overall performance
+        overall_percentage = (overall_total_score / overall_total_possible_score) * 100 if overall_total_possible_score > 0 else 0
+        if overall_percentage < 50:
+            difficulty = "Hard 🔴"
+        elif 50 <= overall_percentage < 75:
+            difficulty = "Moderate 🟡"
+        else:
+            difficulty = "Easy 🟢"
+
+        subject_scores.append((subject_name, user_total_score, user_total_possible_score, overall_total_score, overall_total_possible_score, pass_fail, difficulty))
+
+    # Calculate overall pass/fail status
+    total_attempts = len(past_attempts)
+    passed_attempts = sum(1 for attempt in past_attempts if (attempt[0].score / attempt[0].total_questions) * 100 >= 40)
+    overall_pass_status = "Pass" if passed_attempts / total_attempts >= 0.5 else "Fail" if total_attempts > 0 else "N/A"
+
+    return render_template(
+        'quiz_summary.html',
+        past_attempts=past_attempts,
+        subject_scores=subject_scores,
+        overall_pass_status=overall_pass_status
+    )
+
+# Index Homepage
 @app.route('/')
 def home():
-    return render_template('index.html')
-
+    flash("Welcome to Quiz Master!", "success")  
+    return render_template("index.html")  
 
 # Create Database Tables and Pre-Fill Admin
 with app.app_context():
@@ -486,4 +574,3 @@ with app.app_context():
 # Run Flask App
 if __name__ == '__main__':
     app.run(debug=True)
-

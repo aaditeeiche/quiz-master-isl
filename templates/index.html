@@ -24,11 +24,11 @@
 </head>
 <body>
     <div class="container">
+        {% include 'toastr.html' %}
         <h1 class="mb-4">Welcome to Quiz Master</h1>
         <a href="{{ url_for('auth.admin_login') }}" class="btn btn-primary">Admin Login</a>
         <a href="{{ url_for('auth.user_login') }}" class="btn btn-success">User Login</a>
         
-        <!-- <a href="{{ url_for('auth.register') }}" class="btn btn-info">Register</a> -->
     </div>
 </body>
 </html>

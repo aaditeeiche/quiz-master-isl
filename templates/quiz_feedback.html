@@ -17,6 +17,7 @@
     </style>
 </head>
 <body>
+    {% include 'toastr.html' %}
     <div class="container text-center">
         <h1 class="mb-3">Quiz Feedback</h1>
         <h2 class="text-primary">Score: {{ correct_count }} / {{ total }} ({{ percentage }}%)</h2>

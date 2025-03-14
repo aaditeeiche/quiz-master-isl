@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quiz Summary</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 30px;
+        }
+        .table th, .table td {
+            text-align: center;
+        }
+        .badge-success { background-color: #28a745; }
+        .badge-danger { background-color: #dc3545; }
+        .badge-warning { background-color: #ffc107; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="container">
+        <h2 class="text-center mb-4">📊 Your Quiz Summary</h2>
+
+        <!-- Past Quiz Attempts Table -->
+        <div class="table-responsive">
+            <table class="table table-hover table-striped table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date Attempted</th>
+                        <th>Subject</th>
+                        <th>Chapter</th>
+                        <th>Quiz Title</th>
+                        <th>Your Score</th>
+                        <th>Out of Total</th>
+                        <th>Percentage</th>
+                        <th>Class Average Score</th>
+                        <th>Class Top Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for quiz_score, quiz, chapter, subject, avg_score, top_score in past_attempts %}
+                    <tr>
+                        <td>{{ quiz_score.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ subject.name }}</td>
+                        <td>{{ chapter.name }}</td>
+                        <td>{{ quiz.remarks }}</td>
+                        <td>{{ quiz_score.score }}</td>
+                        <td>{{ quiz_score.total_questions }}</td>
+                        <td>{{ "%.2f"|format((quiz_score.score / quiz_score.total_questions) * 100) }}%</td>
+                        <td>{{ "%.2f"|format(avg_score) }}</td>
+                        <td>{{ top_score }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted">No past quiz attempts found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Total Score & Pass/Fail Status by Subject -->
+        <h2 class="text-center mt-4">📌 Performance by Subject</h2>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-striped table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Subject</th>
+                        <th>Your Score</th>
+                        <th>Total Subject Score</th>
+                        <th>Pass/Fail Status</th>
+                        <th>Difficulty Indicator</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject, user_total_score, user_total_possible_score, overall_total_score, overall_total_possible_score, pass_fail_status, difficulty in subject_scores %}
+                    <tr>
+                        <td>{{ subject }}</td>
+                        <td>{{ user_total_score }} / {{ user_total_possible_score }}</td>
+                        <td>{{ overall_total_score }} / {{ overall_total_possible_score }}</td>
+                        <td>
+                            <span class="badge {% if pass_fail_status == 'Pass' %}badge-success{% else %}badge-danger{% endif %}">
+                                {{ pass_fail_status }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if "Hard" in difficulty %}
+                                <span class="badge bg-danger">{{ difficulty }}</span>
+                            {% elif "Moderate" in difficulty %}
+                                <span class="badge bg-warning">{{ difficulty }}</span>
+                            {% else %}
+                                <span class="badge bg-success">{{ difficulty }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No subject scores available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Overall Pass Status -->
+        <div class="text-center mt-4">
+            <h4>🎯 Overall Performance: 
+                <span class="badge {% if overall_pass_status == 'Pass' %}badge-success{% else %}badge-danger{% endif %}">
+                    {{ overall_pass_status }}
+                </span>
+            </h4>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

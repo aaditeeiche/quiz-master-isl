@@ -90,6 +90,7 @@ class QuizScore(db.Model):
     quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
     score = db.Column(db.Integer, nullable=False)
     total_questions = db.Column(db.Integer, nullable=False)
+    percentage = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     quiz = db.relationship('Quiz', backref=db.backref('quiz_scores', lazy=True))
