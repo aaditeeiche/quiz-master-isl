@@ -147,7 +147,6 @@ def admin_dashboard():
             quiz_id = request.form.get('id')
             quiz = Quiz.query.get(quiz_id)
             if quiz:
-                # quiz.date_of_quiz = request.form.get('date_of_quiz')
                 date_of_quiz_str = request.form.get('date_of_quiz')  # String from form
                 quiz.time_duration = request.form.get('time_duration')
                 quiz.remarks = request.form.get('remarks')
@@ -194,6 +193,8 @@ def user_dashboard():
     user = User.query.get(session['user_id'])  # Fetch the logged-in user
     if not user:
         return redirect(url_for('login'))  # Safety check: user must exist
+    
+    current_date = datetime.today().date()
 
     # Retrieve search query
     search_query = request.args.get('search_query', '').strip()
@@ -213,7 +214,7 @@ def user_dashboard():
     show_chapters = bool(chapters)
     show_quizzes = bool(quizzes)
 
-    return render_template('user_dashboard.html', user=user, chapters=chapters, subjects=subjects, quizzes=quizzes, show_subjects=show_subjects, show_chapters=show_chapters, show_quizzes=show_quizzes)
+    return render_template('user_dashboard.html', user=user, chapters=chapters, subjects=subjects, quizzes=quizzes, show_subjects=show_subjects, show_chapters=show_chapters, show_quizzes=show_quizzes, current_date=current_date)
 
 
 @app.route('/manage_questions', methods=['GET', 'POST'])
@@ -283,8 +284,15 @@ def attempt_quiz(quiz_id):
     quiz = Quiz.query.get_or_404(quiz_id)
     questions = Question.query.filter_by(quiz_id=quiz.id).all()
     user_id = session.get('user_id')  # Ensure the user is logged in
-    correct_count = 0
 
+    current_date = datetime.today().date()
+
+    # Ensure the quiz is available only on the scheduled date
+    if quiz.date_of_quiz != current_date:
+        flash("This quiz is only available on the assigned date!", "error")
+        return redirect(url_for('user_dashboard'))
+
+    correct_count = 0
     if request.method == 'POST':
         user_id = session.get('user_id')
         if not user_id:
@@ -333,7 +341,6 @@ def quiz_feedback(quiz_id):
 
     user_id = session['user_id']
 
-    # Fetch the quiz
     quiz = Quiz.query.get_or_404(quiz_id)
 
     # Fetch all questions related to this quiz
@@ -341,7 +348,7 @@ def quiz_feedback(quiz_id):
 
     if not questions:
         flash("No questions found for this quiz.", "error")
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('user_dashboard'))
 
     # Fetch user's responses
     responses = UserResponse.query.filter_by(user_id=user_id, quiz_id=quiz_id).all()
@@ -349,12 +356,10 @@ def quiz_feedback(quiz_id):
     # Convert responses into a dictionary for quick lookup
     response_dict = {resp.question_id: resp for resp in responses}
 
-    # Fetch user's quiz score and percentage from the database
-    quiz_score = QuizScore.query.filter_by(user_id=user_id, quiz_id=quiz_id).first()
-
-    if not quiz_score:
-        flash("No quiz score found. Please retake the quiz.", "error")
-        return redirect(url_for('dashboard'))
+    # Fetch the current quiz attempt score from request arguments
+    current_score = request.args.get('score', type=int)
+    total_questions = request.args.get('total_questions', type=int)
+    percentage = request.args.get('percentage', type=float)
 
     feedback = []
 
@@ -365,11 +370,10 @@ def quiz_feedback(quiz_id):
     for question in questions:
         user_response = response_dict.get(question.id)
         selected_option_key = user_response.selected_answer if user_response else "No Answer"
-        correct_option_key = question.correct_option  # Assuming it's stored as 'A', 'B', 'C', or 'D'
+        correct_option_key = question.correct_option  #'A', 'B', 'C', or 'D'
 
         selected_answer = get_option_value(question, selected_option_key) if user_response else "No Answer"
         correct_answer = get_option_value(question, correct_option_key)
-
         is_correct = user_response.is_correct if user_response else False
 
         feedback.append({
@@ -383,9 +387,9 @@ def quiz_feedback(quiz_id):
         "quiz_feedback.html",
         quiz_id=quiz_id,
         feedback=feedback,
-        correct_count=quiz_score.score,  # Fetch score from QuizScore
-        total=quiz_score.total_questions,  # Fetch total questions from QuizScore
-        percentage=round(quiz_score.percentage, 2)  # Fetch percentage from QuizScore
+        correct_count=current_score,  # Display current score
+        total=total_questions,
+        percentage=round(percentage, 2)
     )
 
 @app.route('/submit_quiz', methods=['POST'])
@@ -467,7 +471,7 @@ def submit_quiz():
     finally:
         db.session.close()
 
-    return redirect(url_for('quiz_feedback', quiz_id=quiz_id, score=score))
+    return redirect(url_for('quiz_feedback', quiz_id=quiz_id, score=score, total_questions=total_questions, percentage=percentage))
 
 @app.route('/quiz_summary')
 def quiz_summary():
@@ -514,6 +518,10 @@ def quiz_summary():
     # Compute pass/fail and difficulty indicator
     subject_scores = []
     for subject_name, user_total_score, user_total_possible_score, overall_total_score, overall_total_possible_score in subject_scores_query:
+        # Ensure None values are converted to 0
+        user_total_possible_score = user_total_possible_score or 0
+        user_total_score = user_total_score or 0 
+
         user_percentage = (user_total_score / user_total_possible_score) * 100 if user_total_possible_score > 0 else 0
         pass_fail = "Pass" if user_percentage >= 40 else "Fail"
 
@@ -530,7 +538,8 @@ def quiz_summary():
 
     # Calculate overall pass/fail status
     total_attempts = len(past_attempts)
-    passed_attempts = sum(1 for attempt in past_attempts if (attempt[0].score / attempt[0].total_questions) * 100 >= 40)
+    # passed_attempts = sum(1 for attempt in past_attempts if (attempt[0].score / attempt[0].total_questions) * 100 >= 40)
+    passed_attempts = sum(1 for attempt in past_attempts if attempt[0].total_questions > 0 and (attempt[0].score / attempt[0].total_questions) * 100 >= 40)
     overall_pass_status = "Pass" if passed_attempts / total_attempts >= 0.5 else "Fail" if total_attempts > 0 else "N/A"
 
     return render_template(

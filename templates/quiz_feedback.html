@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <style>
         body { font-family: Arial, sans-serif; background-color: #f8f9fa; padding: 20px; }
-        .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        .container { max-width: 750px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
         .correct { color: green; font-weight: bold; }
         .incorrect { color: red; font-weight: bold; }
         .no-answer { color: orange; font-weight: bold; }
@@ -18,10 +18,14 @@
 </head>
 <body>
     {% include 'toastr.html' %}
+
     <div class="container text-center">
         <h1 class="mb-3">Quiz Feedback</h1>
+
         <h2 class="text-primary">Score: {{ correct_count }} / {{ total }} ({{ percentage }}%)</h2>
-        <p class="lead">{% if percentage >= 80 %}🎉 Excellent!{% elif percentage >= 50 %}👍 Good effort!{% else %}📚 Keep practicing!{% endif %}</p>
+        <p class="lead">
+            {% if percentage >= 80 %} 🎉 Excellent! Keep it up! {% elif percentage >= 50 %} 👍 Good effort! Try to improve! {% else %} 📚 Keep practicing! You'll get there! {% endif %}
+        </p>
 
         <table class="table table-bordered">
             <thead class="table-dark">
@@ -39,7 +43,7 @@
                     <td class="{% if item.selected == 'No Answer' %}no-answer{% elif item.is_correct %}correct{% else %}incorrect{% endif %}">
                         {{ item.selected if item.selected else "No Answer" }}
                     </td>
-                    <td>{{ item.correct }}</td>
+                    <td><strong>{{ item.correct }}</strong></td>
                     <td class="{% if item.is_correct %}correct{% else %}incorrect{% endif %}">
                         {% if item.is_correct %}
                             ✅ Correct
@@ -59,5 +63,6 @@
             <a href="{{ url_for('attempt_quiz', quiz_id=quiz_id) }}" class="btn btn-warning">Retake Quiz</a>
         </div>
     </div>
+
 </body>
 </html>

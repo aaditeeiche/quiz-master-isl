@@ -4,6 +4,7 @@
     <title>Login</title>
 </head>
 <body>
+    {% include 'toastr.html' %}
     <a href="{{ url_for('home') }}">Back to homepage</a>
     <h2>{{ 'Admin' if role == 'admin' else 'User' }} Login</h2>
     <form method="post">
@@ -14,6 +15,5 @@
     {% if role == 'user' %}
         <p>New user? <a href="{{ url_for('auth.register') }}">Register Here</a></p>
     {% endif %}
-    {% include 'toastr.html' %}
 </body>
 </html>
