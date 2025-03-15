@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from models.models import db, Admin, User
 from werkzeug.security import check_password_hash, generate_password_hash
-from datetime import datetime
+from datetime import date, datetime
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -29,25 +29,46 @@ def register():
         password = request.form['password']
         full_name = request.form['full_name']
         qualification = request.form['qualification']
-        dob_str = request.form['dob']  # Example: '2025-03-06'
+        dob_str = request.form['dob']
+
+        # Email validation regex
+        import re
+        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+        if not re.match(email_regex, username):
+            flash("Invalid email format. Please enter a valid email.", "danger")
+            return redirect(url_for('auth.register'))
 
         try:
-            # Convert DOB string to date object
             dob = datetime.strptime(dob_str, "%Y-%m-%d").date()
         except ValueError:
             flash("Invalid date format. Please use YYYY-MM-DD.", "danger")
             return redirect(url_for('auth.register'))
-        
-        if User.query.filter_by(username=username).first():
-            flash('Username already exists!', 'danger')
-        else:
-            user = User(username=username, full_name=full_name, qualification=qualification, dob=dob)
-            user.set_password(password)  # Hash password
-            db.session.add(user)
-            db.session.commit()
-            flash('Registration successful! Please log in.', 'success')
-            return redirect(url_for('auth.user_login'))
 
+        # Age validation (User should be at least 12 years old and not in the future)
+        today = date.today()
+        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+        if dob > today:
+            flash("Date of birth cannot be in the future.", "danger")
+            return redirect(url_for('auth.register'))
+
+        if age < 12:
+            flash("You must be at least 12 years old to register.", "danger")
+            return redirect(url_for('auth.register'))
+
+        # Check if username (email) is already taken
+        if User.query.filter_by(username=username).first():
+            flash("Username already exists!", "danger")
+            return redirect(url_for('auth.register'))
+
+        # Create and save the new user
+        user = User(username=username, full_name=full_name, qualification=qualification, dob=dob)
+        user.set_password(password)  # Hash password
+        db.session.add(user)
+        db.session.commit()
+        flash("Registration successful! Please log in.", "success")
+        return redirect(url_for('auth.user_login'))
+    
     return render_template('register.html')
 
 # User Login Route

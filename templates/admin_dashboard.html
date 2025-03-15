@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,43 @@
     <!-- Bootstrap CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Edit Modal (General)
+        const editModal = document.getElementById("editModal");
+        if (editModal) {
+            editModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                document.getElementById("edit-id").value = button.getAttribute("data-id") || "";
+                document.getElementById("edit-name").value = button.getAttribute("data-name") || "";
+                document.getElementById("edit-description").value = button.getAttribute("data-description") || "";
+            });
+        }
+
+        // Edit Chapter Modal
+        const editChapterModal = document.getElementById("editChapterModal");
+        if (editChapterModal) {
+            editChapterModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                document.getElementById("edit-chapter-id").value = button.getAttribute("data-id") || "";
+                document.getElementById("edit-chapter-name").value = button.getAttribute("data-name") || "";
+            });
+        }
+
+        // Edit Quiz Modal
+        const editQuizModal = document.getElementById("editQuizModal");
+        if (editQuizModal) {
+            editQuizModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                document.getElementById("edit-quiz-id").value = button.getAttribute("data-id") || "";
+                document.getElementById("edit-quiz-date").value = button.getAttribute("data-date") || "";
+                document.getElementById("edit-quiz-duration").value = button.getAttribute("data-duration") || "";
+                document.getElementById("edit-quiz-remarks").value = button.getAttribute("data-remarks") || "";
+            });
+        }
+    });
+</script>
+
 <body class="container mt-4">
 
     {% include 'toastr.html' %}
@@ -57,9 +94,9 @@
         <input type="hidden" name="action" value="create_subject">
         <div class="input-group mb-2">
             <input type="text" name="name" class="form-control" placeholder="Subject Name" required>
+            <input type="text" name="description" class="form-control" placeholder="Subject Description" required></input>
             <button type="submit" class="btn btn-primary">Add Subject</button>
         </div>
-        <textarea name="description" class="form-control" placeholder="Subject Description"></textarea>
     </form>
     {% endif %}
 
@@ -81,12 +118,14 @@
                 <td>{{ subject.name }}</td>
                 <td>{{ subject.description or 'N/A' }}</td>
                 <td>
-                    <form method="POST" action="{{ url_for('admin_dashboard') }}" class="d-inline">
-                        <input type="hidden" name="action" value="edit_subject">
-                        <input type="hidden" name="id" value="{{ subject.id }}">
-                        <input type="text" name="name" value="{{ subject.name }}" required class="form-control d-inline w-50">
-                        <button type="submit" class="btn btn-warning">Update</button>
-                    </form>
+                    <button type="button" class="btn btn-warning edit-btn" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#editModal"
+                        data-id="{{ subject.id }}" 
+                        data-name="{{ subject.name }}" 
+                        data-description="{{ subject.description }}">
+                        Edit
+                    </button>
                     <form method="POST" action="{{ url_for('admin_dashboard') }}" class="d-inline">
                         <input type="hidden" name="action" value="delete_subject">
                         <input type="hidden" name="id" value="{{ subject.id }}">
@@ -132,12 +171,14 @@
                 <td>{{ chapter.name }}</td>
                 <td>{{ chapter.subject.name }}</td>
                 <td>
-                    <form method="POST" action="{{ url_for('admin_dashboard') }}" class="d-inline">
-                        <input type="hidden" name="action" value="edit_chapter">
-                        <input type="hidden" name="id" value="{{ chapter.id }}">
-                        <input type="text" name="name" value="{{ chapter.name }}" required class="form-control d-inline w-50">
-                        <button type="submit" class="btn btn-warning">Update</button>
-                    </form>
+                    <!-- Edit Chapter Button -->
+                        <button type="button" class="btn btn-warning" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#editChapterModal"
+                        data-id="{{ chapter.id }}" 
+                        data-name="{{ chapter.name }}">
+                        Edit
+                        </button>
                     <form method="POST" action="{{ url_for('admin_dashboard') }}" class="d-inline">
                         <input type="hidden" name="action" value="delete_chapter">
                         <input type="hidden" name="id" value="{{ chapter.id }}">
@@ -152,8 +193,9 @@
 
     {% if show_quizzes %}
     <h3>Manage Quizzes</h3>
-    <form method="POST" action="{{ url_for('admin_dashboard') }}" class="mb-3">
+    <form method="POST" action="{{ url_for('admin_dashboard') }}" class="mb-3" onsubmit="return validateForm()">
         <input type="hidden" name="action" value="create_quiz">
+        <textarea name="remarks" id="remarks" class="form-control" placeholder="Quiz Title" required></textarea>
         <div class="row mb-2">
             <div class="col-md-4">
                 <select name="chapter_id" class="form-select" required>
@@ -164,16 +206,15 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <input type="date" name="date_of_quiz" class="form-control" required>
+                <input type="date" name="date_of_quiz" id="date_of_quiz" class="form-control" required>
             </div>
             <div class="col-md-3">
-                <input type="text" name="time_duration" class="form-control" placeholder="Duration (minutes)" required>
+                <input type="text" name="time_duration" id="time_duration" class="form-control" placeholder="Duration (minutes)" required>
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary">Add Quiz</button>
             </div>
         </div>
-        <textarea name="remarks" class="form-control" placeholder="Remarks"></textarea>
     </form>
     
     <!-- List of Quizzes -->
@@ -184,7 +225,7 @@
                 <th>Chapter</th>
                 <th>Date</th>
                 <th>Duration</th>
-                <th>Remarks</th>
+                <th>Quiz Title</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -197,11 +238,16 @@
                 <td>{{ quiz.time_duration }}</td>
                 <td>{{ quiz.remarks or 'N/A' }}</td>
                 <td>
-                    <form method="POST" action="{{ url_for('admin_dashboard') }}" class="d-inline">
-                        <input type="hidden" name="action" value="edit_quiz">
-                        <input type="hidden" name="id" value="{{ quiz.id }}">
-                        <button type="submit" class="btn btn-warning">Edit</button>
-                    </form>
+                    <!-- Edit Quiz Button -->
+                        <button type="button" class="btn btn-warning" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#editQuizModal"
+                        data-id="{{ quiz.id }}" 
+                        data-date="{{ quiz.date_of_quiz }}"
+                        data-duration="{{ quiz.time_duration }}"
+                        data-remarks="{{ quiz.remarks }}">
+                        Edit
+                        </button>
                     <form method="POST" action="{{ url_for('admin_dashboard') }}" class="d-inline">
                         <input type="hidden" name="action" value="delete_quiz">
                         <input type="hidden" name="id" value="{{ quiz.id }}">
@@ -219,8 +265,123 @@
     <a href="{{ url_for('manage_questions') }}" class="btn btn-success">Click to manage questions for all quizzes</a>
     {% endif %}
 
+        <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Edit Entry</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('admin_dashboard') }}">
+                    <div class="modal-body">
+                        <input type="hidden" name="action" value="edit_subject">
+                        <input type="hidden" id="edit-id" name="id">
+                        
+                        <label for="edit-name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="edit-name" name="name" required>
+                        
+                        <label for="edit-description" class="form-label mt-2">Description</label>
+                        <textarea class="form-control" id="edit-description" name="description"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Chapter Modal -->
+<div class="modal fade" id="editChapterModal" tabindex="-1" aria-labelledby="editChapterModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editChapterModalLabel">Edit Chapter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin_dashboard') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="edit_chapter">
+                    <input type="hidden" name="id" id="edit-chapter-id">
+                    <div class="mb-3">
+                        <label for="edit-chapter-name" class="form-label">Chapter Name</label>
+                        <input type="text" name="name" id="edit-chapter-name" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Quiz Modal -->
+<div class="modal fade" id="editQuizModal" tabindex="-1" aria-labelledby="editQuizModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editQuizModalLabel">Edit Quiz</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin_dashboard') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="edit_quiz">
+                    <input type="hidden" name="id" id="edit-quiz-id">
+                    <div class="mb-3">
+                        <label for="edit-quiz-date" class="form-label">Date</label>
+                        <input type="date" name="date_of_quiz" id="edit-quiz-date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-quiz-duration" class="form-label">Duration (minutes)</label>
+                        <input type="text" name="time_duration" id="edit-quiz-duration" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-quiz-remarks" class="form-label">Quiz Topic</label>
+                        <textarea name="remarks" id="edit-quiz-remarks" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
     <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
+        function validateForm() {
+        let dateField = document.getElementById("date_of_quiz").value;
+        let timeDuration = document.getElementById("time_duration").value;
+        let remarks = document.getElementById("remarks").value.trim();
+        let today = new Date().toISOString().split("T")[0];
+
+        if (dateField < today) {
+            alert("Quiz date cannot be in the past.");
+            return false;
+        }
+
+        if (isNaN(timeDuration) || parseInt(timeDuration) <= 0) {
+            alert("Time duration must be a positive number.");
+            return false;
+        }
+
+        if (remarks === "") {
+            alert("Quiz Topic is required.");
+            return false;
+        }
+
+        return true;
+    }
+    </script>
+
+    </script>
 
 </body>
 </html>

@@ -37,63 +37,64 @@ class User(db.Model):
 class Subject(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
-    description = db.Column(db.Text)
+    description = db.Column(db.Text, nullable=False)
 
-    chapters = db.relationship('Chapter', backref='subject', lazy=True)
+    chapters = db.relationship('Chapter', backref='subject', lazy=True, cascade="all, delete-orphan")
 
 # Chapter Model
 class Chapter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=False)
+    name = db.Column(db.String(100),  unique=True, nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey('subject.id', ondelete='CASCADE'), nullable=False)
 
-    quizzes = db.relationship('Quiz', backref='chapter', lazy=True)
-
+    quizzes = db.relationship('Quiz', backref='chapter', lazy=True, cascade="all, delete-orphan")
+    
 # Quiz Model
 class Quiz(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    chapter_id = db.Column(db.Integer, db.ForeignKey('chapter.id'), nullable=False)
-    date_of_quiz = db.Column(db.Date)
-    time_duration = db.Column(db.Integer)  # Store duration in minutes
-    remarks = db.Column(db.Text)
+    chapter_id = db.Column(db.Integer, db.ForeignKey('chapter.id', ondelete='CASCADE'), nullable=False)
+    date_of_quiz = db.Column(db.Date, nullable=False)
+    time_duration = db.Column(db.Integer, nullable=False)  # Store duration in minutes
+    remarks = db.Column(db.Text, unique=True, nullable=False)
     
-    questions = db.relationship('Question', backref='quiz', lazy=True)
+    questions = db.relationship('Question', backref='quiz', lazy=True, cascade="all, delete-orphan")
+    quiz_scores = db.relationship('QuizScore', backref='quiz', cascade="all, delete-orphan")
+    user_responses = db.relationship('UserResponse', backref='quiz', cascade="all, delete-orphan")
 
 # Question Model
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id', ondelete='CASCADE'), nullable=False)
     question_statement = db.Column(db.Text, nullable=False)
-    optionA = db.Column(db.String(200))
-    optionB = db.Column(db.String(200))
-    optionC = db.Column(db.String(200))
-    optionD = db.Column(db.String(200))
-    correct_option = db.Column(db.String(200))
+    optionA = db.Column(db.String(255), nullable=False)
+    optionB = db.Column(db.String(255), nullable=False)
+    optionC = db.Column(db.String(255), nullable=False)
+    optionD = db.Column(db.String(255), nullable=False)
+    correct_option = db.Column(db.String(1), nullable=False)
 
 # User Response
 class UserResponse(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
-    question_id = db.Column(db.Integer, db.ForeignKey('question.id'), nullable=False)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id', ondelete="CASCADE"), nullable=False)
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id', ondelete='CASCADE'), nullable=False)
     selected_answer = db.Column(db.String(1), nullable=False)
     is_correct = db.Column(db.Boolean, nullable=False)  # Indicates if the answer is correct
 
     user = db.relationship('User', backref=db.backref('responses', lazy=True))
-    quiz = db.relationship('Quiz', backref=db.backref('responses', lazy=True))
-    question = db.relationship('Question', backref=db.backref('responses', lazy=True))
-
+    question = db.relationship('Question', backref=db.backref('responses', lazy=True, cascade="all, delete-orphan"))
+    
 # Quiz Score Model
 class QuizScore(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id', ondelete='CASCADE'), nullable=False)  # Ensure proper cascade
     score = db.Column(db.Integer, nullable=False)
     total_questions = db.Column(db.Integer, nullable=False)
     percentage = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
-    quiz = db.relationship('Quiz', backref=db.backref('quiz_scores', lazy=True))
+    # quiz = db.relationship('Quiz', backref=db.bssackref('quiz_scores', lazy=True, cascade="all, delete-orphan"))
 
 # Create Tables
 if __name__ == '__main__':

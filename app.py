@@ -4,6 +4,8 @@ from controllers.auth import auth_bp
 from models.models import Chapter, Question, Quiz, QuizScore, Subject, User, db, Admin, UserResponse  # Import models from models.py
 from datetime import date, datetime
 from flask_toastr import Toastr
+from sqlalchemy.exc import IntegrityError
+
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -70,11 +72,20 @@ def admin_dashboard():
         if action == 'create_subject':
             name = request.form.get('name')
             description = request.form.get('description')
+
             if name:
-                new_subject = Subject(name=name, description=description)
-                db.session.add(new_subject)
-                db.session.commit()
-                flash('Subject added successfully!', 'success')
+                existing_subject = Subject.query.filter_by(name=name).first()
+                if existing_subject:
+                    flash('Subject already exists!', 'warning')  # Prevent duplicate entries
+                else:
+                    try:
+                        new_subject = Subject(name=name, description=description)
+                        db.session.add(new_subject)
+                        db.session.commit()
+                        flash('Subject added successfully!', 'success')
+                    except IntegrityError:
+                        db.session.rollback()
+                        flash('An error occurred while adding the subject. Please try again.', 'danger')
 
         elif action == 'edit_subject':
             subject_id = request.form.get('id')
@@ -93,17 +104,35 @@ def admin_dashboard():
             if subject:
                 db.session.delete(subject)
                 db.session.commit()
-                flash('Subject deleted successfully!', 'success')
+                flash('Subject and its related chapters were deleted successfully!', 'danger')
 
-        # --- Chapter CRUD ---
+        # # --- Chapter CRUD ---
+        # elif action == 'create_chapter':
+        #     subject_id = request.form.get('subject_id')
+        #     name = request.form.get('name')
+        #     if subject_id and name:
+        #         new_chapter = Chapter(subject_id=subject_id, name=name)
+        #         db.session.add(new_chapter)
+        #         db.session.commit()
+        #         flash('Chapter added successfully!', 'success')
+
         elif action == 'create_chapter':
             subject_id = request.form.get('subject_id')
             name = request.form.get('name')
+
             if subject_id and name:
-                new_chapter = Chapter(subject_id=subject_id, name=name)
-                db.session.add(new_chapter)
-                db.session.commit()
-                flash('Chapter added successfully!', 'success')
+                existing_chapter = Chapter.query.filter_by(subject_id=subject_id, name=name).first()
+                if existing_chapter:
+                    flash('Chapter already exists for this subject!', 'warning')  # Prevent duplicate chapters
+                else:
+                    try:
+                        new_chapter = Chapter(subject_id=subject_id, name=name)
+                        db.session.add(new_chapter)
+                        db.session.commit()
+                        flash('Chapter added successfully!', 'success')
+                    except IntegrityError:
+                        db.session.rollback()
+                        flash('An error occurred while adding the chapter. Please try again.', 'danger')
 
         elif action == 'edit_chapter':
             chapter_id = request.form.get('id')
@@ -119,50 +148,83 @@ def admin_dashboard():
             if chapter:
                 db.session.delete(chapter)
                 db.session.commit()
-                flash('Chapter deleted successfully!', 'success')
+                flash('Chapter and its related quizzes were deleted successfully!', 'danger')
 
-        # --- Quiz CRUD ---
         elif action == 'create_quiz':
             chapter_id = request.form.get('chapter_id')
-            date_of_quiz_str = request.form.get('date_of_quiz')  # String from form
+            date_of_quiz_str = request.form.get('date_of_quiz')
             time_duration = request.form.get('time_duration')
             remarks = request.form.get('remarks')
 
-            # Convert string to Python date object
-            date_of_quiz = datetime.strptime(date_of_quiz_str, '%Y-%m-%d').date()
+            # Validate remarks (Required)
+            if not remarks.strip():
+                flash('Remarks are required.', 'danger')
+                return redirect(request.referrer)
 
-            # Convert time_duration to integer (assuming minutes)
+            # Convert and validate quiz date
+            date_of_quiz = datetime.strptime(date_of_quiz_str, '%Y-%m-%d').date()
+            if date_of_quiz < date.today():
+                flash('Quiz date cannot be in the past.', 'danger')
+
+            # Convert time_duration to integer
             try:
-                time_duration = int(time_duration)  # Convert to integer
+                time_duration = int(time_duration)
+                if time_duration <= 0:
+                    flash('Time duration must be a positive number.', 'danger')
+                    return redirect(request.referrer)
             except ValueError:
                 flash('Invalid time duration. Please enter a number.', 'danger')
-                return redirect(request.referrer)  # Redirect back if invalid input
+                return redirect(request.referrer)
 
-            new_quiz = Quiz(chapter_id=chapter_id, date_of_quiz=date_of_quiz, time_duration=time_duration, remarks=remarks)
+            # Save quiz if all validations pass
+            new_quiz = Quiz(
+                chapter_id=chapter_id,
+                date_of_quiz=date_of_quiz,
+                time_duration=time_duration,
+                remarks=remarks
+            )
             db.session.add(new_quiz)
             db.session.commit()
             flash('Quiz added successfully!', 'success')
+            return redirect(request.referrer)
 
         elif action == 'edit_quiz':
             quiz_id = request.form.get('id')
             quiz = Quiz.query.get(quiz_id)
+            
             if quiz:
-                date_of_quiz_str = request.form.get('date_of_quiz')  # String from form
+                date_of_quiz_str = request.form.get('date_of_quiz')  # Get date as string
                 quiz.time_duration = request.form.get('time_duration')
                 quiz.remarks = request.form.get('remarks')
-                # Convert string to Python date object
-                date_of_quiz = datetime.strptime(date_of_quiz_str, '%Y-%m-%d').date()
+
+                if date_of_quiz_str:
+                    try:
+                        # Convert string to date
+                        date_of_quiz = datetime.strptime(date_of_quiz_str, '%Y-%m-%d').date()
+                        today = datetime.today().date()
+
+                        # Validation: Ensure selected date is today or in the future
+                        if date_of_quiz < today:
+                            flash('Quiz date cannot be in the past. Please select today or a future date.', 'danger')
+                            return redirect(url_for('admin_dashboard'))  # Prevent commit if date is invalid
+
+                        # If valid, update quiz object
+                        quiz.date_of_quiz = date_of_quiz
+                    except ValueError:
+                        flash('Invalid date format. Please use YYYY-MM-DD.', 'danger')
+                        return redirect(url_for('admin_dashboard'))
 
                 db.session.commit()
                 flash('Quiz updated successfully!', 'success')
-
+            else:
+                flash('Quiz not found!', 'danger')
         elif action == 'delete_quiz':
             quiz_id = request.form.get('id')
             quiz = Quiz.query.get(quiz_id)
             if quiz:
                 db.session.delete(quiz)
                 db.session.commit()
-                flash('Quiz deleted successfully!', 'success')
+                flash('Quiz and its related questions, scores, and responses were deleted successfully!', 'danger')
 
         # --- Question CRUD ---
         elif action == 'create_question':
@@ -340,12 +402,10 @@ def quiz_feedback(quiz_id):
         return redirect(url_for('login'))
 
     user_id = session['user_id']
-
     quiz = Quiz.query.get_or_404(quiz_id)
 
     # Fetch all questions related to this quiz
     questions = Question.query.filter_by(quiz_id=quiz_id).all()
-
     if not questions:
         flash("No questions found for this quiz.", "error")
         return redirect(url_for('user_dashboard'))
@@ -357,9 +417,9 @@ def quiz_feedback(quiz_id):
     response_dict = {resp.question_id: resp for resp in responses}
 
     # Fetch the current quiz attempt score from request arguments
-    current_score = request.args.get('score', type=int)
-    total_questions = request.args.get('total_questions', type=int)
-    percentage = request.args.get('percentage', type=float)
+    current_score = request.args.get('score', type=int) or 0
+    total_questions = request.args.get('total_questions', type=int) or 1  # Prevent division by zero
+    percentage = request.args.get('percentage', type=float) or 0.0
 
     feedback = []
 
@@ -538,9 +598,8 @@ def quiz_summary():
 
     # Calculate overall pass/fail status
     total_attempts = len(past_attempts)
-    # passed_attempts = sum(1 for attempt in past_attempts if (attempt[0].score / attempt[0].total_questions) * 100 >= 40)
     passed_attempts = sum(1 for attempt in past_attempts if attempt[0].total_questions > 0 and (attempt[0].score / attempt[0].total_questions) * 100 >= 40)
-    overall_pass_status = "Pass" if passed_attempts / total_attempts >= 0.5 else "Fail" if total_attempts > 0 else "N/A"
+    overall_pass_status = "N/A" if total_attempts == 0 else ("Pass" if passed_attempts / total_attempts >= 0.5 else "Fail")
 
     return render_template(
         'quiz_summary.html',
