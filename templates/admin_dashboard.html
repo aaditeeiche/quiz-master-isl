@@ -354,32 +354,31 @@
         </div>
     </div>
 </div>
-
-    <!-- Bootstrap JS Bundle -->
-    < script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
-        function validateForm() {
-        let dateField = document.getElementById("date_of_quiz").value;
-        let timeDuration = document.getElementById("time_duration").value;
-        let remarks = document.getElementById("remarks").value.trim();
-        let today = new Date().toISOString().split("T")[0];
-
-        if (dateField < today) {
-            alert("Quiz date cannot be in the past.");
-            return false;
-        }
-
-        if (isNaN(timeDuration) || parseInt(timeDuration) <= 0) {
-            alert("Time duration must be a positive number.");
-            return false;
-        }
-
-        if (remarks === "") {
-            alert("Quiz Topic is required.");
-            return false;
-        }
-
-        return true;
-    }
-</script>
 </body>
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
+function validateForm() {
+let dateField = document.getElementById("date_of_quiz").value;
+let timeDuration = document.getElementById("time_duration").value;
+let remarks = document.getElementById("remarks").value.trim();
+let today = new Date().toISOString().split("T")[0];
+
+if (dateField < today) {
+    alert("Quiz date cannot be in the past.");
+    return false;
+}
+
+if (isNaN(timeDuration) || parseInt(timeDuration) <= 0) {
+    alert("Time duration must be a positive number.");
+    return false;
+}
+
+if (remarks === "") {
+    alert("Quiz Topic is required.");
+    return false;
+}
+
+return true;
+}
+</script>
 </html>
