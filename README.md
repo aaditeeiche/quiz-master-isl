@@ -13,7 +13,7 @@ It is a multi-user app (one requires an administrator and other users) that acts
 4. Open your browser and go to http://127.0.0.1:5000/.
 
 ### Admin Login
-- Username: admin
+- Username: quizmaster
 - Password: admin123
 - Admins can create subjects, chapters, quizzes, and add questions.
 ### User Signup & Login
