@@ -22,6 +22,14 @@ db.init_app(app)
 # Register Blueprints (Routes)
 app.register_blueprint(auth_bp)
 
+# Index Homepage
+@app.route('/')
+def home():
+    flash("Welcome to Quiz Master!", "success")  
+    return render_template("index.html")  
+
+### ADMIN ROUTES ###
+
 @app.route('/admin_dashboard', methods=['GET', 'POST'])
 def admin_dashboard():
     if 'admin_logged_in' not in session:
@@ -76,7 +84,7 @@ def admin_dashboard():
             if name:
                 existing_subject = Subject.query.filter_by(name=name).first()
                 if existing_subject:
-                    flash('Subject already exists!', 'warning')  # Prevent duplicate entries
+                    flash('Subject already exists!', 'warning') 
                 else:
                     try:
                         new_subject = Subject(name=name, description=description)
@@ -113,7 +121,7 @@ def admin_dashboard():
             if subject_id and name:
                 existing_chapter = Chapter.query.filter_by(subject_id=subject_id, name=name).first()
                 if existing_chapter:
-                    flash('Chapter already exists for this subject!', 'warning')  # Prevent duplicate chapters
+                    flash('Chapter already exists for this subject!', 'warning') 
                 else:
                     try:
                         new_chapter = Chapter(subject_id=subject_id, name=name)
@@ -237,63 +245,6 @@ def admin_dashboard():
     return render_template('admin_dashboard.html', users=users, subjects=subjects, chapters=chapters, quizzes=quizzes, search_query=search_query, show_users=show_users, show_subjects=show_subjects, show_chapters = show_chapters, show_quizzes=show_quizzes
     )
 
-@app.route('/view_statistics', methods=['GET'])
-def view_statistics():
-    if 'admin_logged_in' not in session:
-        return redirect(url_for('auth.admin_login'))
-
-    """Fetch summary statistics and pass them to the template."""
-    total_users = User.query.count()
-    total_quizzes = Quiz.query.count()
-    total_subjects = Subject.query.count()  # Fetch total subjects
-
-    # Pass, Fail, and NA Counts
-    pass_count = db.session.query(QuizScore).filter(QuizScore.percentage >= 40).count()
-    fail_count = db.session.query(QuizScore).filter(QuizScore.percentage < 40).count()
-    na_count = db.session.query(User).outerjoin(QuizScore).filter(QuizScore.id.is_(None)).count()
-
-    return render_template(
-        'view_statistics.html',
-        total_users=total_users,
-        total_quizzes=total_quizzes,
-        total_subjects=total_subjects,
-        pass_count=pass_count,
-        fail_count=fail_count,
-        na_count=na_count
-    )
-
-@app.route('/user_dashboard')
-def user_dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))  # Redirect if user is not logged in
-
-    user = User.query.get(session['user_id'])  # Fetch the logged-in user
-    if not user:
-        return redirect(url_for('login'))  # Safety check: user must exist
-    
-    current_date = datetime.today().date()
-
-    # Retrieve search query
-    search_query = request.args.get('search_query', '').strip()
-
-    # Perform search if query is present
-    if search_query:
-        subjects = Subject.query.filter(Subject.name.ilike(f"%{search_query}%")).all()
-        chapters = Chapter.query.filter(Chapter.name.ilike(f"%{search_query}%")).all()
-        quizzes = Quiz.query.filter(Quiz.remarks.ilike(f"%{search_query}%")).all()
-    else:
-        # Show all subjects and quizzes if no search query
-        subjects = Subject.query.all()
-        chapters = Chapter.query.all()
-        quizzes = Quiz.query.all()
-
-    show_subjects = bool(subjects)
-    show_chapters = bool(chapters)
-    show_quizzes = bool(quizzes)
-
-    return render_template('user_dashboard.html', user=user, chapters=chapters, subjects=subjects, quizzes=quizzes, show_subjects=show_subjects, show_chapters=show_chapters, show_quizzes=show_quizzes, current_date=current_date)
-
-
 @app.route('/manage_questions', methods=['GET', 'POST'])
 def manage_questions():
     if 'admin_logged_in' not in session:
@@ -340,7 +291,7 @@ def manage_questions():
 
 @app.route('/edit_question/<int:question_id>', methods=['GET', 'POST'])
 def edit_question(question_id):
-    question = Question.query.get_or_404(question_id)  # Ensure question exists
+    question = Question.query.get_or_404(question_id) 
 
     if request.method == 'POST':
         question.question_statement = request.form.get('question_text')
@@ -352,9 +303,67 @@ def edit_question(question_id):
 
         db.session.commit()
         flash('Question updated successfully!', 'info')
-        return redirect(url_for('manage_questions'))  # Redirect after updating
+        return redirect(url_for('manage_questions')) 
 
     return render_template('edit_question.html', question=question)  # Return response in GET method
+
+@app.route('/view_statistics', methods=['GET'])
+def view_statistics():
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('auth.admin_login'))
+
+    """Fetch summary statistics and pass them to the template."""
+    total_users = User.query.count()
+    total_quizzes = Quiz.query.count()
+    total_subjects = Subject.query.count() 
+
+    # Pass, Fail, and NA Counts
+    pass_count = db.session.query(QuizScore).filter(QuizScore.percentage >= 40).count()
+    fail_count = db.session.query(QuizScore).filter(QuizScore.percentage < 40).count()
+    na_count = db.session.query(User).outerjoin(QuizScore).filter(QuizScore.id.is_(None)).count()
+
+    return render_template(
+        'view_statistics.html',
+        total_users=total_users,
+        total_quizzes=total_quizzes,
+        total_subjects=total_subjects,
+        pass_count=pass_count,
+        fail_count=fail_count,
+        na_count=na_count
+    )
+
+### USER ROUTES ###
+
+@app.route('/user_dashboard')
+def user_dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))  
+
+    user = User.query.get(session['user_id'])  # Fetch the logged-in user
+    if not user:
+        return redirect(url_for('login')) # User must exist in database
+    
+    current_date = datetime.today().date()
+
+    # Search Functionality - User
+    search_query = request.args.get('search_query', '').strip()
+
+    # Perform search if query is present
+    if search_query:
+        subjects = Subject.query.filter(Subject.name.ilike(f"%{search_query}%")).all()
+        chapters = Chapter.query.filter(Chapter.name.ilike(f"%{search_query}%")).all()
+        quizzes = Quiz.query.filter(Quiz.remarks.ilike(f"%{search_query}%")).all()
+    else:
+        # Show all subjects and quizzes if no search query
+        subjects = Subject.query.all()
+        chapters = Chapter.query.all()
+        quizzes = Quiz.query.all()
+
+    show_subjects = bool(subjects)
+    show_chapters = bool(chapters)
+    show_quizzes = bool(quizzes)
+
+    return render_template('user_dashboard.html', user=user, chapters=chapters, subjects=subjects, quizzes=quizzes, show_subjects=show_subjects, show_chapters=show_chapters, show_quizzes=show_quizzes, current_date=current_date)
 
 @app.route('/attempt_quiz/<int:quiz_id>', methods=['GET', 'POST'])
 def attempt_quiz(quiz_id):
@@ -378,7 +387,7 @@ def attempt_quiz(quiz_id):
 
         feedback = []
         for question in questions:
-            selected_answer = request.form.get(f'question_{question.id}', None)  # Default to None if unanswered
+            selected_answer = request.form.get(f'question_{question.id}', None)  # Default to None if  - X
             is_correct = selected_answer == question.correct_option
             
             if is_correct:
@@ -393,9 +402,8 @@ def attempt_quiz(quiz_id):
 
         user_answers = request.form  # Get all submitted answers
         for question in questions:
-            selected_answer = user_answers.get(f'question_{question.id}', 'X')  # Use 'X' for unanswered
+            selected_answer = user_answers.get(f'question_{question.id}', 'X') 
 
-             # Store response in database
             user_response = UserResponse(
                 user_id=user_id,
                 question_id=question.id,
@@ -410,7 +418,87 @@ def attempt_quiz(quiz_id):
 
     return render_template('attempt_quiz.html', quiz=quiz, questions=questions)
 
-@app.route('/quiz_feedback/<int:quiz_id>') # changed
+@app.route('/submit_quiz', methods=['POST'])
+def submit_quiz():
+    if 'user_id' not in session:
+        flash("Please log in to submit the quiz.", "error")
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']  # Get user ID from session
+    quiz_id = request.form.get('quiz_id')
+
+    if not quiz_id:
+        flash("Quiz ID missing!", "error")
+        return redirect(url_for('dashboard'))
+
+    quiz = Quiz.query.get(quiz_id)
+    if not quiz:
+        flash("Quiz not found!", "error")
+        return redirect(url_for('dashboard'))
+
+    # Retrieve submitted answers
+    user_answers = request.form.to_dict()
+    questions = Question.query.filter_by(quiz_id=quiz_id).all()
+    total_questions = len(questions)
+
+    score = 0  # Initialize score
+
+    for question in questions:
+        selected_answer = user_answers.get(f'question_{question.id}', 'X')  
+        is_correct = selected_answer == question.correct_option
+        if is_correct:
+            score += 1
+
+        # Add latest user response to the database
+        user_response = UserResponse(
+            user_id=user_id,
+            quiz_id=quiz_id,
+            question_id=question.id,
+            selected_answer=selected_answer,
+            is_correct=is_correct
+        )        
+        db.session.add(user_response)
+
+    # Calculate the percentage
+    percentage = (score / total_questions) * 100 if total_questions > 0 else 0
+
+    # Retrieve existing best score for the quiz
+    existing_score = QuizScore.query.filter_by(user_id=user_id, quiz_id=quiz_id).first()
+
+    if existing_score:
+        if score > existing_score.score:  # Update only if the new score is higher
+            existing_score.score = score
+            existing_score.total_questions = total_questions
+            existing_score.percentage = percentage
+            existing_score.timestamp = datetime.utcnow()
+            flash("Congratulations! Your highest score has been updated.", "success")
+        else:
+            flash("Your previous best score remains unchanged.", "info")
+    else:
+        # If no previous attempt exists, save the new score
+        quiz_score = QuizScore(
+            user_id=user_id,
+            quiz_id=quiz_id,
+            score=score,
+            total_questions=total_questions,
+            percentage=percentage,
+            timestamp=datetime.utcnow()
+        )
+        db.session.add(quiz_score)
+        flash("Your score has been recorded!", "success")
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print("Error saving responses:", e)
+        flash("An error occurred while submitting the quiz.", "error")
+    finally:
+        db.session.close()
+
+    return redirect(url_for('quiz_feedback', quiz_id=quiz_id, score=score, total_questions=total_questions, percentage=percentage))
+
+@app.route('/quiz_feedback/<int:quiz_id>')
 def quiz_feedback(quiz_id):
     if 'user_id' not in session:
         flash("Please log in to view quiz feedback.", "error")
@@ -467,87 +555,6 @@ def quiz_feedback(quiz_id):
         percentage=round(percentage, 2)
     )
 
-@app.route('/submit_quiz', methods=['POST'])
-def submit_quiz():
-    # Check if a user is logged in
-    if 'user_id' not in session:
-        flash("Please log in to submit the quiz.", "error")
-        return redirect(url_for('login'))
-
-    user_id = session['user_id']  # Get user ID from session
-    quiz_id = request.form.get('quiz_id')
-
-    if not quiz_id:
-        flash("Quiz ID missing!", "error")
-        return redirect(url_for('dashboard'))
-
-    quiz = Quiz.query.get(quiz_id)
-    if not quiz:
-        flash("Quiz not found!", "error")
-        return redirect(url_for('dashboard'))
-
-    # Retrieve submitted answers
-    user_answers = request.form.to_dict()
-    questions = Question.query.filter_by(quiz_id=quiz_id).all()
-    total_questions = len(questions)
-
-    score = 0  # Initialize score
-
-    for question in questions:
-        selected_answer = user_answers.get(f'question_{question.id}', 'X')  # Default 'X' for unanswered
-        is_correct = selected_answer == question.correct_option
-        if is_correct:
-            score += 1
-
-        # Add latest user response to the database
-        user_response = UserResponse(
-            user_id=user_id,
-            quiz_id=quiz_id,
-            question_id=question.id,
-            selected_answer=selected_answer,
-            is_correct=is_correct
-        )        
-        db.session.add(user_response)
-
-    # Calculate the percentage
-    percentage = (score / total_questions) * 100 if total_questions > 0 else 0
-
-    # Retrieve existing best score for the quiz
-    existing_score = QuizScore.query.filter_by(user_id=user_id, quiz_id=quiz_id).first()
-
-    if existing_score:
-        if score > existing_score.score:  # Update only if the new score is higher
-            existing_score.score = score
-            existing_score.total_questions = total_questions
-            existing_score.percentage = percentage
-            existing_score.timestamp = datetime.utcnow()
-            flash("Congratulations! Your highest score has been updated.", "success")
-        else:
-            flash("Your previous best score remains unchanged.", "info")
-    else:
-        # If no previous attempt exists, save the new score
-        quiz_score = QuizScore(
-            user_id=user_id,
-            quiz_id=quiz_id,
-            score=score,
-            total_questions=total_questions,
-            percentage=percentage,
-            timestamp=datetime.utcnow()
-        )
-        db.session.add(quiz_score)
-        flash("Your score has been recorded!", "success")
-
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        print("Error saving responses:", e)
-        flash("An error occurred while submitting the quiz.", "error")
-    finally:
-        db.session.close()
-
-    return redirect(url_for('quiz_feedback', quiz_id=quiz_id, score=score, total_questions=total_questions, percentage=percentage))
-
 @app.route('/quiz_summary')
 def quiz_summary():
     if 'user_id' not in session:
@@ -574,7 +581,7 @@ def quiz_summary():
         .all()
     )
 
-    # Compute both user's total score and overall total score per subject
+    # Compute both user's total score and class average score
     subject_scores_query = (
         db.session.query(
             Subject.name.label('subject_name'),
@@ -602,7 +609,7 @@ def quiz_summary():
             user_percentage = (user_total_score / user_total_possible_score) * 100
             pass_fail = "Pass" if user_percentage >= 40 else "Fail"
         else:
-            pass_fail = "N/A"  # User has never attempted a quiz in this subject
+            pass_fail = "N/A"  # Indicates user has never attempted a quiz in this subject
 
         # Difficulty Indicator based on class average score
         if class_avg_score < 40:
@@ -626,12 +633,6 @@ def quiz_summary():
         overall_pass_status=overall_pass_status
     )
 
-# Index Homepage
-@app.route('/')
-def home():
-    flash("Welcome to Quiz Master!", "success")  
-    return render_template("index.html")  
-
 # Create Database Tables and Pre-Fill Admin
 with app.app_context():
     db.create_all()
@@ -647,4 +648,4 @@ with app.app_context():
 
 # Run Flask App
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)``

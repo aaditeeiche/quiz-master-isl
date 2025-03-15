@@ -94,8 +94,6 @@ class QuizScore(db.Model):
     percentage = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # quiz = db.relationship('Quiz', backref=db.bssackref('quiz_scores', lazy=True, cascade="all, delete-orphan"))
-
 # Create Tables
 if __name__ == '__main__':
     with app.app_context():
