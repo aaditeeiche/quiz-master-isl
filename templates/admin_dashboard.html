@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -50,7 +49,10 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Welcome Admin</h2>
+        <div>
+        <a href="{{ url_for('view_statistics') }}" class="btn btn-info">View Statistics</a>
         <a href="{{ url_for('auth.logout') }}" class="btn btn-danger">Logout</a>
+        </div>
     </div>
 
     <!-- Search Form -->

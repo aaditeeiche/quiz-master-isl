@@ -5,7 +5,7 @@ from models.models import Chapter, Question, Quiz, QuizScore, Subject, User, db,
 from datetime import date, datetime
 from flask_toastr import Toastr
 from sqlalchemy.exc import IntegrityError
-
+from sqlalchemy.sql import func
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -105,16 +105,6 @@ def admin_dashboard():
                 db.session.delete(subject)
                 db.session.commit()
                 flash('Subject and its related chapters were deleted successfully!', 'danger')
-
-        # # --- Chapter CRUD ---
-        # elif action == 'create_chapter':
-        #     subject_id = request.form.get('subject_id')
-        #     name = request.form.get('name')
-        #     if subject_id and name:
-        #         new_chapter = Chapter(subject_id=subject_id, name=name)
-        #         db.session.add(new_chapter)
-        #         db.session.commit()
-        #         flash('Chapter added successfully!', 'success')
 
         elif action == 'create_chapter':
             subject_id = request.form.get('subject_id')
@@ -245,6 +235,31 @@ def admin_dashboard():
         return redirect(url_for('admin_dashboard'))
 
     return render_template('admin_dashboard.html', users=users, subjects=subjects, chapters=chapters, quizzes=quizzes, search_query=search_query, show_users=show_users, show_subjects=show_subjects, show_chapters = show_chapters, show_quizzes=show_quizzes
+    )
+
+@app.route('/view_statistics', methods=['GET'])
+def view_statistics():
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('auth.admin_login'))
+
+    """Fetch summary statistics and pass them to the template."""
+    total_users = User.query.count()
+    total_quizzes = Quiz.query.count()
+    total_subjects = Subject.query.count()  # Fetch total subjects
+
+    # Pass, Fail, and NA Counts
+    pass_count = db.session.query(QuizScore).filter(QuizScore.percentage >= 40).count()
+    fail_count = db.session.query(QuizScore).filter(QuizScore.percentage < 40).count()
+    na_count = db.session.query(User).outerjoin(QuizScore).filter(QuizScore.id.is_(None)).count()
+
+    return render_template(
+        'view_statistics.html',
+        total_users=total_users,
+        total_quizzes=total_quizzes,
+        total_subjects=total_subjects,
+        pass_count=pass_count,
+        fail_count=fail_count,
+        na_count=na_count
     )
 
 @app.route('/user_dashboard')
@@ -565,8 +580,7 @@ def quiz_summary():
             Subject.name.label('subject_name'),
             db.func.sum(QuizScore.score).filter(QuizScore.user_id == user_id).label('user_total_score'),
             db.func.sum(QuizScore.total_questions).filter(QuizScore.user_id == user_id).label('user_total_possible_score'),
-            db.func.sum(QuizScore.score).label('overall_total_score'),
-            db.func.sum(QuizScore.total_questions).label('overall_total_possible_score')
+            db.func.avg(QuizScore.score).label('class_avg_score')  # Compute class average score
         )
         .join(Quiz, QuizScore.quiz_id == Quiz.id)
         .join(Chapter, Quiz.chapter_id == Chapter.id)
@@ -577,24 +591,28 @@ def quiz_summary():
 
     # Compute pass/fail and difficulty indicator
     subject_scores = []
-    for subject_name, user_total_score, user_total_possible_score, overall_total_score, overall_total_possible_score in subject_scores_query:
+    for subject_name, user_total_score, user_total_possible_score, class_avg_score in subject_scores_query:
         # Ensure None values are converted to 0
         user_total_possible_score = user_total_possible_score or 0
         user_total_score = user_total_score or 0 
+        class_avg_score = class_avg_score or 0  # Default class avg score to 0 if no data
 
-        user_percentage = (user_total_score / user_total_possible_score) * 100 if user_total_possible_score > 0 else 0
-        pass_fail = "Pass" if user_percentage >= 40 else "Fail"
+       # Compute user percentage only if the user has attempted the quiz
+        if user_total_possible_score > 0:
+            user_percentage = (user_total_score / user_total_possible_score) * 100
+            pass_fail = "Pass" if user_percentage >= 40 else "Fail"
+        else:
+            pass_fail = "N/A"  # User has never attempted a quiz in this subject
 
-        # Difficulty Indicator based on overall performance
-        overall_percentage = (overall_total_score / overall_total_possible_score) * 100 if overall_total_possible_score > 0 else 0
-        if overall_percentage < 50:
+        # Difficulty Indicator based on class average score
+        if class_avg_score < 40:
             difficulty = "Hard 🔴"
-        elif 50 <= overall_percentage < 75:
+        elif 40 <= class_avg_score < 75:
             difficulty = "Moderate 🟡"
         else:
             difficulty = "Easy 🟢"
 
-        subject_scores.append((subject_name, user_total_score, user_total_possible_score, overall_total_score, overall_total_possible_score, pass_fail, difficulty))
+        subject_scores.append((subject_name, user_total_score, user_total_possible_score, class_avg_score, pass_fail, difficulty))
 
     # Calculate overall pass/fail status
     total_attempts = len(past_attempts)
