@@ -79,11 +79,10 @@
                         <th>Your Score</th>
                         <th>Class Average Score</th>
                         <th>Pass/Fail Status</th>
-                        <th>Difficulty Indicator</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for subject, user_total_score, user_total_possible_score, class_avg_score, pass_fail_status, difficulty in subject_scores %}
+                    {% for subject, user_total_score, user_total_possible_score, class_avg_score, pass_fail_status in subject_scores %}
                     <tr>
                         <td>{{ subject }}</td>
                         <td>{{ user_total_score }} / {{ user_total_possible_score }}</td>
@@ -92,15 +91,6 @@
                             <span class="badge {% if pass_fail_status == 'Pass' %}badge-success{% else %}badge-danger{% endif %}">
                                 {{ pass_fail_status }}
                             </span>
-                        </td>
-                        <td>
-                            {% if "Hard" in difficulty %}
-                                <span class="badge bg-danger">{{ difficulty }}</span>
-                            {% elif "Moderate" in difficulty %}
-                                <span class="badge bg-warning">{{ difficulty }}</span>
-                            {% else %}
-                                <span class="badge bg-success">{{ difficulty }}</span>
-                            {% endif %}
                         </td>
                     </tr>
                     {% else %}

@@ -596,13 +596,12 @@ def quiz_summary():
         .all()
     )
 
-    # Compute pass/fail and difficulty indicator
+    # Compute pass/fail for user
     subject_scores = []
     for subject_name, user_total_score, user_total_possible_score, class_avg_score in subject_scores_query:
         # Ensure None values are converted to 0
         user_total_possible_score = user_total_possible_score or 0
         user_total_score = user_total_score or 0 
-        class_avg_score = class_avg_score or 0  # Default class avg score to 0 if no data
 
        # Compute user percentage only if the user has attempted the quiz
         if user_total_possible_score > 0:
@@ -611,15 +610,7 @@ def quiz_summary():
         else:
             pass_fail = "N/A"  # Indicates user has never attempted a quiz in this subject
 
-        # Difficulty Indicator based on class average score
-        if class_avg_score < 40:
-            difficulty = "Hard 🔴"
-        elif 40 <= class_avg_score < 75:
-            difficulty = "Moderate 🟡"
-        else:
-            difficulty = "Easy 🟢"
-
-        subject_scores.append((subject_name, user_total_score, user_total_possible_score, class_avg_score, pass_fail, difficulty))
+        subject_scores.append((subject_name, user_total_score, user_total_possible_score, class_avg_score, pass_fail))
 
     # Calculate overall pass/fail status
     total_attempts = len(past_attempts)
