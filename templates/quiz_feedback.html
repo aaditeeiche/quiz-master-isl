@@ -58,11 +58,22 @@
             </tbody>
         </table>
 
-        <div class="btn-container">
-            <a href="{{ url_for('user_dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
-            <a href="{{ url_for('attempt_quiz', quiz_id=quiz_id) }}" class="btn btn-warning">Retake Quiz</a>
+        <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+            <a href="{{ url_for('user_dashboard') }}" class="btn btn-primary">
+                <i class="fas fa-home"></i> Back to Dashboard
+            </a>
+            <a href="{{ url_for('attempt_quiz', quiz_id=quiz_id) }}" class="btn btn-warning">
+                <i class="fas fa-redo"></i> Retake Quiz
+            </a>
+            <button class="btn btn-success" onclick="printFeedback()">
+                <i class="fas fa-print"></i> Print Feedback
+            </button>
         </div>
     </div>
-
 </body>
+<script>
+    function printFeedback() {
+        window.print();
+    }
+</script>
 </html>
