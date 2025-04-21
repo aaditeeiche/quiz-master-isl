@@ -27,7 +27,7 @@
     </nav>
 
     <div class="container mt-4">
-        <h1 class="text-center">Welcome, {{ user.full_name }}</h1>
+        <h1 class="text-center">Welcome, {{ user.full_name|safe }}</h1>
 
         <!-- Search Bar -->
         <form method="GET" action="{{ url_for('user_dashboard') }}" class="d-flex justify-content-center my-4">
@@ -35,6 +35,9 @@
             <button type="submit" class="btn btn-primary">Search</button>
             <a href="{{ url_for('user_dashboard') }}" class="btn btn-secondary ms-2">Clear</a>
         </form>
+        {% if search_query %}
+            <h5 class="text-center">You searched for: {{ search_query|safe }}</h5>
+        {% endif %}
 
         <!-- Layout: Left (Subjects & Chapters) | Right (Quizzes Table) -->
         <div class="row">

