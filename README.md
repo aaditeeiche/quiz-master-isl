@@ -32,6 +32,6 @@ It is a multi-user app (one requires an administrator and other users) that acts
 ### Query for Reflected XSS attack demo
 - Go to user's dashboard, implement any html tag in the search box.
 - For instance you may use something like -
-  <script>alert('Reflected XSS')</script>
-
-### SQL injection attack
+  <script>
+  alert('Reflected XSS')
+  </script>

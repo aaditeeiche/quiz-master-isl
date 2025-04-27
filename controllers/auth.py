@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from sqlalchemy import text
 from models.models import db, Admin, User, Feedback
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import date, datetime
@@ -20,6 +21,24 @@ def admin_login():
             flash('Invalid credentials', 'danger')
 
     return render_template('login.html', role='admin')
+
+@auth_bp.route('/vulnerable_login', methods=['GET', 'POST'])
+def vulnerable_login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        query = text(f"SELECT * FROM user WHERE username = '{username}' AND password = '{password}'")
+        result = db.session.execute(query).fetchone()
+
+        if result:
+            session['user_id'] = result[0]  # Assuming first column is id
+            return redirect(url_for('user_dashboard'))
+        else:
+            flash('Invalid credentials', 'danger')
+            return render_template('login.html', role='vulnerable_user')
+
+    return render_template('login.html', role='vulnerable_user')
 
 # User Registration Route
 @auth_bp.route('/register', methods=['GET', 'POST'])
