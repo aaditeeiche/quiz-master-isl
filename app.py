@@ -1,4 +1,6 @@
+from threading import Thread
 from flask import Flask, flash, render_template, request, session, redirect, url_for
+from werkzeug import run_simple
 from werkzeug.security import generate_password_hash
 from controllers.auth import auth_bp
 from models.models import Chapter, Question, Quiz, QuizScore, Subject, User, db, Admin, UserResponse  # Import models from models.py
@@ -651,6 +653,21 @@ with app.app_context():
     else:
         print("Admin user already exists.")
 
+import multiprocessing
+
+def run_http():
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)  # HTTP
+
+def run_https():
+    context = ('ssl/certificate.pem', 'ssl/private_key.pem')  # Path to your SSL certificate and private key
+    run_simple('0.0.0.0', 5001, app, ssl_context=context)  # HTTPS
+
 # Run Flask App
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    # Start HTTP and HTTPS servers in separate threads
+    http_thread = Thread(target=run_http)
+    https_thread = Thread(target=run_https)
+    
+    # Start the threads
+    http_thread.start()
+    https_thread.start()
