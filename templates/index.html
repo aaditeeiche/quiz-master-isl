@@ -7,28 +7,54 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
+            min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
-            height: 100vh;
+            align-items: flex-start;
+            padding-top: 50px;
             background-color: #f8f9fa;
         }
-        .container {
-            text-align: center;
+        .main-container {
+            width: 500px;
         }
         .btn {
             width: 200px;
-            margin: 10px;
+            margin: 10px auto;
+        }
+        textarea {
+            resize: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="main-container">
         {% include 'toastr.html' %}
-        <h1 class="mb-4">Welcome to Quiz Master</h1>
-        <a href="{{ url_for('auth.admin_login') }}" class="btn btn-primary">Admin Login</a>
-        <a href="{{ url_for('auth.user_login') }}" class="btn btn-success">User Login</a>
-        
+        <div class="text-center mb-4">
+            <h1 class="mb-4">Welcome to Quiz Master</h1>
+            <a href="{{ url_for('auth.admin_login') }}" class="btn btn-primary d-block">Admin Login</a>
+            <a href="{{ url_for('auth.user_login') }}" class="btn btn-success d-block">User Login</a>
+        </div>
+
+        <div class="card shadow p-4 mb-4">
+            <h3 class="mb-3">Leave a Feedback</h3>
+            <form action="/submit_feedback" method="POST">
+                <div class="form-group mb-3">
+                    <textarea class="form-control" name="feedback" rows="3" placeholder="Your feedback..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-outline-primary w-100">Submit</button>
+            </form>
+        </div>
+
+        <div class="card shadow p-4">
+            <h3 class="mb-3">User Feedbacks</h3>
+            {% for fb in feedbacks %}
+                <div class="border-bottom py-2">
+                    <p class="mb-0">{{ fb.content|safe }}</p> <!-- Stored XSS demo -->
+                </div>
+            {% else %}
+                <p>No feedback yet. Be the first!</p>
+            {% endfor %}
+        </div>
     </div>
 </body>
 </html>

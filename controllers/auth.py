@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from models.models import db, Admin, User
+from models.models import db, Admin, User, Feedback
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import date, datetime
 
@@ -92,3 +92,17 @@ def user_login():
 def logout():
     session.clear()
     return redirect(url_for('home'))
+
+# Feedback Route
+@auth_bp.route('/')
+def index():
+    feedbacks = Feedback.query.all()
+    return render_template('index.html', feedbacks=feedbacks)
+
+@auth_bp.route('/submit_feedback', methods=['POST'])
+def submit_feedback():
+    content = request.form['feedback']
+    new_feedback = Feedback(content=content)
+    db.session.add(new_feedback)
+    db.session.commit()
+    return redirect('/')

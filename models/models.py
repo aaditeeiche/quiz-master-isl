@@ -93,6 +93,11 @@ class QuizScore(db.Model):
     total_questions = db.Column(db.Integer, nullable=False)
     percentage = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Feedback Model
+class Feedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
     
 # Create Tables
 if __name__ == '__main__':
