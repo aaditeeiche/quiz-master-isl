@@ -16,5 +16,22 @@ It is a multi-user app (one requires an administrator and other users) that acts
 - Username: quizmaster
 - Password: admin123
 - Admins can create subjects, chapters, quizzes, and add questions.
+  
 ### User Signup & Login
 - Users can register, take quizzes, view scores, and compare their performance with the class average.
+
+### Query for Stored XSS attack demo
+- Paste the text below in the feedback section on the index page.
+- For instance you may use something like -
+  <script>
+    document.body.style.backgroundColor = "black";
+    document.body.style.color = "red";
+    alert('You are now under my control..This website has been hacked!!!');
+</script>
+
+### Query for Reflected XSS attack demo
+- Go to user's dashboard, implement any html tag in the search box.
+- For instance you may use something like -
+  <script>alert('Reflected XSS')</script>
+
+### SQL injection attack
