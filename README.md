@@ -35,3 +35,9 @@ It is a multi-user app (one requires an administrator and other users) that acts
   <script>
   alert('Reflected XSS')
   </script>
+
+### Query for SQL injection
+- Go to Home Page and enter the following credentials
+  Field | Value
+  Username | ' OR '1'='1' --
+  Password | anything
