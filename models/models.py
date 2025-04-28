@@ -48,7 +48,7 @@ class Chapter(db.Model):
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id', ondelete='CASCADE'), nullable=False)
 
     quizzes = db.relationship('Quiz', backref='chapter', lazy=True, cascade="all, delete-orphan")
-    
+ 
 # Quiz Model
 class Quiz(db.Model):
     id = db.Column(db.Integer, primary_key=True)

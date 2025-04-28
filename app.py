@@ -8,6 +8,15 @@ from datetime import date, datetime
 from flask_toastr import Toastr
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import func
+import razorpay
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+key_id = os.getenv("RP_KEY_ID")
+secret_key = os.getenv("RP_SECRET_KEY")
+razorpay_client = razorpay.Client(auth=(key_id, secret_key))
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -639,6 +648,23 @@ def quiz_summary():
         subject_scores=subject_scores,
         overall_pass_status=overall_pass_status
     )
+
+@app.route('/subscribe')
+def subscribe():
+    return render_template('payment_index.html')
+        
+@app.route('/payment', methods=['POST'])
+def payment():
+    amount = int(request.form['amount']) * 100  # Razorpay works in paise (1 INR = 100 paise)
+
+    payment_order = razorpay_client.order.create(dict(
+        amount=amount,
+        currency='INR',
+        payment_capture='1'
+    ))
+
+    payment_order_id = payment_order['id']
+    return render_template('payment.html', payment_order_id=payment_order_id, amount=amount)
 
 # Create Database Tables and Pre-Fill Admin
 with app.app_context():
