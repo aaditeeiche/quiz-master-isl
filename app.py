@@ -11,6 +11,7 @@ from sqlalchemy.sql import func
 import razorpay
 import os
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 load_dotenv()
 
@@ -389,6 +390,47 @@ def inject_xss():
 @app.route('/hacked')
 def hacked():
     return "<h1 style='color:red;'>Your device has been compromised.</h1><p>This is a demo of a XSS attack.</p>"
+
+# @app.route('/instructions/<int:quiz_id>', methods=['GET', 'POST'])
+# def instructions(quiz_id):
+#     quiz = Quiz.query.get_or_404(quiz_id)
+#     if not quiz:
+#         return "Quiz not found", 404
+
+#     questions = []
+#     if request.method == 'POST':
+#         user_input = request.form.get('start_input', '')
+
+#         # ✅ UNSAFE SQL QUERY (for SQL Injection demo)
+#         query = f"SELECT * FROM question WHERE quiz_id = {user_input};"
+#         result = db.session.execute(query)
+
+#         questions = result.fetchall()
+
+#     return render_template('instructions.html', quiz=quiz, questions=questions)
+
+@app.route('/instructions/<int:quiz_id>', methods=['GET', 'POST'])
+def instructions(quiz_id):
+    quiz = Quiz.query.get_or_404(quiz_id)
+
+    questions = []
+    if request.method == 'POST':
+        user_input = request.form.get('start_input', '').strip()
+
+        if user_input.lower() == 'start':
+            # ✅ If user types "start", redirect to quiz page
+            return redirect(url_for('attempt_quiz', quiz_id=quiz_id))
+        else:
+            try:
+                # ✅ Else, treat user_input as raw SQL injection
+                query = f"SELECT * FROM question WHERE quiz_id = {user_input};"
+                result = db.session.execute(text(query))
+                questions = result.fetchall()
+            except Exception as e:
+                print("SQL Injection Error:", e)
+                questions = []  # To avoid crashing page
+
+    return render_template('instructions.html', quiz=quiz, questions=questions)
 
 @app.route('/attempt_quiz/<int:quiz_id>', methods=['GET', 'POST'])
 def attempt_quiz(quiz_id):

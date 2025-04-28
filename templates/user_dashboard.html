@@ -101,8 +101,10 @@
                                 <td>{{ quiz.date_of_quiz.strftime('%Y-%m-%d') }}</td>
                                 <td>
                                     {% if quiz.date_of_quiz == current_date %}
-                                        <a href="{{ url_for('attempt_quiz', quiz_id=quiz.id) }}" class="btn btn-success btn-sm">Start Quiz</a>
-                                    {% else %}
+                                        <!-- <a href="{{ url_for('attempt_quiz', quiz_id=quiz.id) }}" class="btn btn-success btn-sm">Start Quiz</a> -->
+                                        <a href="{{ url_for('instructions', quiz_id=quiz.id) }}" class="btn btn-success btn-sm">Start Quiz</a>
+
+                                        {% else %}
                                         <span class="btn btn-secondary btn-sm disabled">Not Available</span>
                                     {% endif %}
                                 </td>

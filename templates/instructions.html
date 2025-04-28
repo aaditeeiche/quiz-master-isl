@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz Instructions (Injection Test)</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+    <h2>Instructions for {{ quiz.title }}</h2>
+    <ul>
+        <li>Read all questions carefully.</li>
+        <li>No negative marking.</li>
+        <li>Once you start, you cannot pause the quiz.</li>
+    </ul>
+
+    <form method="POST" class="mt-4">
+        <div class="mb-3">
+            <label for="startInput" class="form-label">Enter "start" to Start</label>
+            <input type="text" class="form-control" id="startInput" name="start_input" required>
+        </div>
+
+        <button type="submit" class="btn btn-danger">Submit</button>
+    </form>
+
+    {% if questions %}
+        <h3 class="mt-5">Dumped Questions</h3>
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Quiz ID</th>
+                    <th>Statement</th>
+                    <th>OptionA</th>
+                    <th>OptionB</th>
+                    <th>OptionC</th>
+                    <th>OptionD</th>
+                    <th>Correct Option</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in questions %}
+                <tr>
+                    <td>{{ q.id }}</td>
+                    <td>{{ q.quiz_id }}</td>
+                    <td>{{ q.question_statement }}</td>
+                    <td>{{ q.optionA }}</td>
+                    <td>{{ q.optionB }}</td>
+                    <td>{{ q.optionC }}</td>
+                    <td>{{ q.optionD }}</td>
+                    <td>{{ q.correct_option }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+</body>
+</html>
